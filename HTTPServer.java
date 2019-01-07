@@ -3,7 +3,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -14,62 +13,50 @@ public class HTTPServer {
 	public static void main(String[] args) throws IOException {
 		HttpServer server = HttpServer.create(new InetSocketAddress(8500), 0);
 		System.out.println("Server started in port 8500");
+		server.createContext("/access", new AccessHandler());
 		server.createContext("/login", new LoginHandler());
-		server.createContext("/signup", new SignUpHandler());
 		server.setExecutor(null);
 		server.start();
 	}
 }
 
-class LoginHandler implements HttpHandler {
-	public void handle(HttpExchange t) throws IOException {
-		System.out.println("Client Connected");
-		String response = "This is the response";
-		t.sendResponseHeaders(200, response.length());
-		OutputStream os = t.getResponseBody();
-		os.write(response.getBytes());
-		os.close();
+class AccessHandler implements HttpHandler {
+
+	@Override
+	public void handle(HttpExchange ex) throws IOException {
+		URI uri = ex.getRequestURI();
+		System.out.println(uri.getPath());
 	}
+
 }
 
-class SignUpHandler implements HttpHandler {
-	public void handle(HttpExchange t) throws IOException {
+class LoginHandler implements HttpHandler {
+	public void handle(HttpExchange ex) throws IOException {
 		System.out.println("Client Connected");
-		URI uri = t.getRequestURI();
-		Map<String, String> params = queryToMap(uri.getQuery());
-		
-		Map.Entry<String,String> entry = params.entrySet().iterator().next();
-		String name = entry.getValue();
-		entry = params.entrySet().iterator().next();
-		String password = entry.getValue();
-
-		String path = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/" + name;
-		File file = new File(path);
-		OutputStream os = t.getResponseBody();
-		if (file.exists()) {
-			String unsuccessfulResponse = "Username already present";
-			t.sendResponseHeaders(200, unsuccessfulResponse.length());
-			os.write(unsuccessfulResponse.getBytes());
-
-		} else {
-			file.mkdir();
-			String successfulResponse = "Root folder created";
-			t.sendResponseHeaders(200, successfulResponse.length());
-			os.write(successfulResponse.getBytes());
+		URI uri = ex.getRequestURI();
+		Map<String, String> params = Utilities.queryToMap(uri.getQuery());
+		String[] user = new String[params.size()];
+		int i = 0;
+		for (Map.Entry<String, String> entry : params.entrySet()) {
+			user[i++] = entry.getValue();
 		}
+		String path = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/" + user[0];
+		File file = new File(path);
+		OutputStream os = ex.getResponseBody();
+		String msg = "";
+		if (file.exists() && user[2].equals("new")) {
+			msg = "Username already present";
+		} else if (file.exists() && user[2].equals("existing")) {
+			msg = "Access granted";
+		} else if (!file.exists() && user[2].equals("new")) {
+			file.mkdir();
+			msg = "Root folder created";
+		} else if (!file.exists() && user[2].equals("existing")) {
+			msg = "User not registered";
+		}
+		ex.sendResponseHeaders(200, msg.length());
+		os.write(msg.getBytes());
 		os.close();
 	}
 
-	public static Map<String, String> queryToMap(String query) {
-		Map<String, String> result = new LinkedHashMap<String, String>();
-		for (String param : query.split("&")) {
-			String pair[] = param.split("=");
-			if (pair.length > 1) {
-				result.put(pair[0], pair[1]);
-			} else {
-				result.put(pair[0], "");
-			}
-		}
-		return result;
-	}
 }
