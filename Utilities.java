@@ -1,4 +1,7 @@
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 class Utilities{
 	public static Scanner scan = new Scanner(System.in).useDelimiter("\n");
@@ -47,5 +50,18 @@ class Utilities{
 			}
 		}
 		return selectedValue;
+	}
+	
+	public static Map<String, String> queryToMap(String query) {
+		Map<String, String> result = new LinkedHashMap<String, String>();
+		for (String param : query.split("&")) {
+			String pair[] = param.split("=");
+			if (pair.length > 1) {
+				result.put(pair[0], pair[1]);
+			} else {
+				result.put(pair[0], "");
+			}
+		}
+		return result;
 	}
 }
