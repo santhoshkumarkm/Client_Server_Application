@@ -38,8 +38,6 @@ public class HTTPClient {
 					System.out.println(line);
 					if (line.equals("Access granted") || line.equals("Root folder created")) {
 						accessFolder(name);
-					} else {
-						System.out.println(line);
 					}
 				}
 			} else {
