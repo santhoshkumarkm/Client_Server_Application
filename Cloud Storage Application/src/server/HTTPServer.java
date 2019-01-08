@@ -1,7 +1,11 @@
 package server;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -12,6 +16,8 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 public class HTTPServer {
+	final public static String defaultLocation = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/";
+
 	public static void main(String[] args) throws IOException {
 		HttpServer server = HttpServer.create(new InetSocketAddress(8500), 0);
 		System.out.println("Server started in port 8500");
@@ -27,7 +33,47 @@ class AccessHandler implements HttpHandler {
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
 		URI uri = ex.getRequestURI();
-		System.out.println(uri.getPath());
+		InputStream in = ex.getRequestBody();
+		BufferedReader bin = new BufferedReader(new InputStreamReader(in));
+		StringBuilder stringBuilder = new StringBuilder();
+		String s = "";
+		while ((s = bin.readLine()) != null) {
+			stringBuilder.append(s + "\n");
+		}
+		String msg= "";
+		if(createFile(stringBuilder.toString())) {
+			 msg = "success";
+		}
+		else
+			msg = "not success";
+		OutputStream os = ex.getResponseBody();
+		ex.sendResponseHeaders(200, msg.length());
+		os.write(msg.getBytes());
+		os.close();
+	}
+
+	private boolean createFile(String full) throws IOException {
+		Map<String, String> params = Utilities.queryToMap(full);
+		String fileLocation = "", fileName = "", content = "";
+		int i = 0;
+		for (Map.Entry<String, String> entry : params.entrySet()) {
+			if (i == 0)
+				fileLocation = entry.getValue();
+			else {
+				fileName = entry.getKey();
+				content = entry.getValue();
+			}
+			i++;
+		}
+		File file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
+		if (!file.exists()) {
+			file.createNewFile();
+			FileWriter fw = new FileWriter(file);
+			fw.write(content);
+			fw.close();
+			return true;
+		}
+		return false;
 	}
 
 }
@@ -42,7 +88,7 @@ class LoginHandler implements HttpHandler {
 		for (Map.Entry<String, String> entry : params.entrySet()) {
 			user[i++] = entry.getValue();
 		}
-		String path = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/" + user[0];
+		String path = HTTPServer.defaultLocation + user[0];
 		File file = new File(path);
 		OutputStream os = ex.getResponseBody();
 		String msg = "";
