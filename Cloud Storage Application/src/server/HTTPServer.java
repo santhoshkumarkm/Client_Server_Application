@@ -40,11 +40,10 @@ class AccessHandler implements HttpHandler {
 		while ((s = bin.readLine()) != null) {
 			stringBuilder.append(s + "\n");
 		}
-		String msg= "";
-		if(createFile(stringBuilder.toString())) {
-			 msg = "success";
-		}
-		else
+		String msg = "";
+		if (create(stringBuilder.toString())) {
+			msg = "success";
+		} else
 			msg = "not success";
 		OutputStream os = ex.getResponseBody();
 		ex.sendResponseHeaders(200, msg.length());
@@ -52,7 +51,7 @@ class AccessHandler implements HttpHandler {
 		os.close();
 	}
 
-	private boolean createFile(String full) throws IOException {
+	private boolean create(String full) throws IOException {
 		Map<String, String> params = Utilities.queryToMap(full);
 		String fileLocation = "", fileName = "", content = "";
 		int i = 0;
@@ -67,10 +66,13 @@ class AccessHandler implements HttpHandler {
 		}
 		File file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
 		if (!file.exists()) {
-			file.createNewFile();
-			FileWriter fw = new FileWriter(file);
-			fw.write(content);
-			fw.close();
+			if (fileName.contains(".txt")) {
+				file.createNewFile();
+				FileWriter fw = new FileWriter(file);
+				fw.write(content);
+				fw.close();
+			} else
+				file.mkdir();
 			return true;
 		}
 		return false;

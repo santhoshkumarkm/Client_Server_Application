@@ -73,21 +73,20 @@ public class HTTPClient {
 //			String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
 			String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/san/test_file 1.txt";
 			File file = new File(fileUrl);
-			String fileName = Utilities.inputString("name for your file", ".*[.]txt", 1, 100);
-			String saveLocation = Utilities.inputString("save folder location", ".*", 1, 20);
+			String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
+			String saveLocation = Utilities.inputString("save folder name", ".*", 1, 20);
 			if (!saveLocation.equals(name)) {
-				saveLocation = "name/" + saveLocation;
+				saveLocation = name +"//" + saveLocation;
 			}
 			HttpPost post = new HttpPost(defaultUri);
 			BufferedReader bin = new BufferedReader(new FileReader(file));
 			StringBuilder stringBuilder = new StringBuilder();
 			String s = "";
 			while ((s = bin.readLine()) != null) {
-				stringBuilder.append(s+"\n");
+				stringBuilder.append(s + "\n");
 			}
-//			System.out.println(stringBuilder);
 			bin.close();
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
+			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 			nameValuePairs.add(new BasicNameValuePair("Location", saveLocation));
 			nameValuePairs.add(new BasicNameValuePair(fileName, stringBuilder.toString()));
 			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -98,8 +97,6 @@ public class HTTPClient {
 				String line = "";
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
-					if (line.equals(""))
-						accessFolder(name);
 				}
 			} else {
 				System.out.println("Unexpected response status: " + status);
@@ -108,8 +105,11 @@ public class HTTPClient {
 		}
 		case NEW_SUBFOLDER: {
 			String folderName = Utilities.inputString("folder name", ".*", 1, 10);
-			String uri = defaultUri + "?folderName=" + folderName;
-			HttpPost post = new HttpPost(uri);
+			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+			nameValuePairs.add(new BasicNameValuePair("Location", name));
+			nameValuePairs.add(new BasicNameValuePair(folderName, ""));
+			HttpPost post = new HttpPost(defaultUri);
+			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 			HttpResponse response = client.execute(post);
 			int status = response.getStatusLine().getStatusCode();
 			if (status >= 200 && status < 300) {
