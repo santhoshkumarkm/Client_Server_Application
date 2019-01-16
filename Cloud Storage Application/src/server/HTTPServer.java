@@ -52,15 +52,18 @@ class AccessHandler implements HttpHandler {
 				msg = "not success";
 		} else if (uri.getPath().contains("read")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			File file;
-			if (readFileAttributes[1].equals("root")) {
-				file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[2]);
-			} else {
-				file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]
-						+ "?/" + readFileAttributes[2]);
-			}
+			File file = new File(
+					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
 			if (file.exists()) {
 				msg = stringBuilder(new BufferedReader(new FileReader(file)));
+			} else {
+				msg = "File not found";
+			}
+		} else if (uri.getPath().contains("check")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			File file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0]+"/"+readFileAttributes[1]);
+			if (file.exists()) {
+				msg = "Folder present";
 			} else {
 				msg = "File not found";
 			}
@@ -93,33 +96,29 @@ class AccessHandler implements HttpHandler {
 	}
 
 	private boolean create(String request, String uriPath) throws IOException {
+		request = request.substring(0,request.length()-1);
 		String fileLocation = "", fileName = "", content = "";
 		String fileAttributes[] = Utilities.queryToMap(request);
 		fileLocation = fileAttributes[0];
 		fileName = fileAttributes[1];
-		File file;
-		if (uriPath.contains("folder")) {
-			file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
-			if (!file.exists()) {
-				file.mkdirs();
+		File file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
+		if (!file.exists()) {
+			if (uriPath.contains("folder")) {
+				file.mkdir();
 				return true;
-			}
-		} else {
-			content = fileAttributes[2];
-			if (!fileAttributes[3].contains("root") && !fileAttributes[3].contains("ROOT"))
-				fileLocation = fileLocation + "/" + fileAttributes[3];
-			file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
-			if (new File(HTTPServer.defaultLocation + "/" + fileLocation).exists() && !file.exists()) {
+			} else {
+				content = fileAttributes[2];
+//				if (new File(HTTPServer.defaultLocation + "/" + fileLocation).exists()) {
 				file.createNewFile();
 				FileWriter fw = new FileWriter(file);
 				fw.write(content);
 				fw.close();
 				return true;
+//				}
 			}
 		}
 		return false;
 	}
-
 }
 
 class LoginHandler implements HttpHandler {

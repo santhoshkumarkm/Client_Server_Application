@@ -23,7 +23,8 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client = HttpClients.createDefault();
-	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, READ_FILE = 3, LOGOUT = 4;
+	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, READ_FILE = 3, CHANGE_DIRECTORY = 4,
+			GO_BACK_DIRECTORY = 5, LOG_OUT = 6;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
@@ -56,32 +57,44 @@ public class HTTPClient {
 		}
 	}
 
-	static void handleResponse(HttpResponse response) throws UnsupportedOperationException, IOException {
+	static boolean handleResponse(HttpResponse response) throws UnsupportedOperationException, IOException {
 		int status = response.getStatusLine().getStatusCode();
+		String line = "";
 		if (status >= 200 && status < 300) {
 			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-			String line = "";
 			while ((line = br.readLine()) != null) {
-				System.out.println(line);
+				System.out.println(URLDecoder.decode(line, "UTF-8"));
+				if(line.equals("Folder present")) {
+					return true;
+				}
 			}
 		} else {
 			System.out.println("Unexpected response status: " + status);
 		}
+		return false;
 	}
 
-	static void accessFolder(String name) throws ClientProtocolException, IOException {
+	static boolean accessFolder(String name) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
 		List<String> list = new ArrayList<String>();
 		list.add("Save New File");
 		list.add("Create New SubFolder");
 		list.add("Read File");
+		list.add("Change current directory");
+		list.add("Go back directory");
 		list.add("Logout");
+		boolean flag = false;
 		outer: while (true) {
-			System.out.println("Current path: " + "/" + name);
+			if(flag) {
+				break;
+			}
+			System.out.println("Current directory: " + "/" + name);
+
 			System.out.println("-----------------------------------------------------------");
 			HttpPost initialPost = new HttpPost(defaultUri + "/" + name + "?name=" + name);
 			HttpResponse response = client.execute(initialPost);
 			handleResponse(response);
+
 			int option = Utilities.selectOption(list);
 			switch (option) {
 			case NEW_FILE: {
@@ -90,8 +103,6 @@ public class HTTPClient {
 				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
 				File file = new File(fileUrl);
 				String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
-				String saveLocation = Utilities
-						.inputString("save folder location (Enter \"root\" to save at root folder)", ".*", 1, 20);
 				StringBuilder stringBuilder = new StringBuilder();
 				if (file.exists()) {
 					BufferedReader bin = new BufferedReader(new FileReader(file));
@@ -105,10 +116,9 @@ public class HTTPClient {
 					break;
 				}
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-				nameValuePairs.add(new BasicNameValuePair("user", name));
-				nameValuePairs.add(new BasicNameValuePair("File Name", fileName));
-				nameValuePairs.add(new BasicNameValuePair("File Content", stringBuilder.toString()));
-				nameValuePairs.add(new BasicNameValuePair("Subfolder", saveLocation));
+				nameValuePairs.add(new BasicNameValuePair("File location", name));
+				nameValuePairs.add(new BasicNameValuePair("File name", fileName));
+				nameValuePairs.add(new BasicNameValuePair("File content", stringBuilder.toString()));
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				handleResponse(response);
@@ -116,37 +126,47 @@ public class HTTPClient {
 			}
 			case NEW_SUBFOLDER: {
 				HttpPost post = new HttpPost(defaultUri + "/create/folder");
-				String folderName = Utilities.inputString("folder name", ".*", 1, 10);
+				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 10);
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-				nameValuePairs.add(new BasicNameValuePair("Location", name));
-				nameValuePairs.add(new BasicNameValuePair("File Name", folderName));
+				nameValuePairs.add(new BasicNameValuePair("File location", name));
+				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				handleResponse(response);
 				break;
 			}
 			case READ_FILE: {
-				String fileUrl = Utilities.inputString(
-						"file name (with folder path for subfolder files(Eg: sub_folder/file.txt))", ".*[.]txt", 1,
-						100);
-				String uri;
-				if (fileUrl.contains("/")) {
-					uri = defaultUri + "/read?" + "username=" + name + "&subfolder="
-							+ fileUrl.substring(0, fileUrl.indexOf('/')) + "&filename="
-							+ fileUrl.substring(fileUrl.indexOf('/') + 1, fileUrl.length());
-				} else {
-					uri = defaultUri + "/read?" + "username=" + name + "&subfolder=" + "root" + "&filename=" + fileUrl;
-				}
+				String fileUrl = Utilities.inputString("file name", ".*[.]txt", 1, 100);
+				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileUrl;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
 				handleResponse(response);
 				break;
 			}
-			case LOGOUT: {
-				break outer;
+			case CHANGE_DIRECTORY: {
+				String folderName = Utilities.inputString("folder name", ".*", 1, 20);
+				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				if(handleResponse(response)){					
+					flag = accessFolder(name + "/" + folderName);
+				} else {
+					System.out.println("No such folder");
+				}
+				break;
 			}
+			case GO_BACK_DIRECTORY: {
+				return false;
+			}
+			case LOG_OUT: {
+				return true;
+			}
+			}
+			if(flag) {
+				break;
 			}
 		}
+		return true;
 	}
 
 	public static void main(String[] args) {

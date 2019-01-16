@@ -1,5 +1,7 @@
 package server;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,16 +54,15 @@ public class Utilities {
 		return selectedValue;
 	}
 
-	public static String[] queryToMap(String query) {
+	public static String[] queryToMap(String query) throws UnsupportedEncodingException {
 		query = query.substring(1);
-//		Map<String, String> params = Utilities.queryToMap(uri.getQuery());
 		Map<String, String> result = new LinkedHashMap<String, String>();
 		for (String param : query.split("&")) {
 			String pair[] = param.split("=");
 			if (pair.length > 1) {
-				result.put(pair[0], pair[1]);
+				result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
 			} else {
-				result.put(pair[0], "");
+				result.put(URLDecoder.decode(pair[0], "UTF-8"), "");
 			}
 		}
 		String[] user = new String[result.size()];
