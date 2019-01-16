@@ -29,6 +29,15 @@ public class HTTPServer {
 }
 
 class AccessHandler implements HttpHandler {
+	private static String stringBuilder(BufferedReader bin) throws IOException {
+		StringBuilder stringBuilderVar = new StringBuilder();
+		String s = "";
+		while ((s = bin.readLine()) != null) {
+			stringBuilderVar.append(s + "\n");
+		}
+		return stringBuilderVar.toString();
+	}
+
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
 		URI uri = ex.getRequestURI();
@@ -36,14 +45,8 @@ class AccessHandler implements HttpHandler {
 		String msg = "";
 		if (uri.getPath().contains("create")) {
 			InputStream in = ex.getRequestBody();
-			BufferedReader bin = new BufferedReader(new InputStreamReader(in));
-			StringBuilder stringBuilder = new StringBuilder();
-			String s = "";
-			while ((s = bin.readLine()) != null) {
-				stringBuilder.append(s + "\n");
-			}
-			bin.close();
-			if (create(stringBuilder.toString(), uriPath)) {
+			String s = stringBuilder(new BufferedReader(new InputStreamReader(in)));
+			if (create(s, uriPath)) {
 				msg = "success";
 			} else
 				msg = "not success";
@@ -57,14 +60,7 @@ class AccessHandler implements HttpHandler {
 						+ "?/" + readFileAttributes[2]);
 			}
 			if (file.exists()) {
-				BufferedReader bin = new BufferedReader(new FileReader(file));
-				StringBuilder stringBuilder = new StringBuilder();
-				String s = "";
-				while ((s = bin.readLine()) != null) {
-					stringBuilder.append(s + "\n");
-				}
-				bin.close();
-				msg = stringBuilder.toString();
+				msg = stringBuilder(new BufferedReader(new FileReader(file)));
 			} else {
 				msg = "File not found";
 			}
@@ -79,7 +75,7 @@ class AccessHandler implements HttpHandler {
 							temp = temp + f1.getName() + ",";
 						}
 					}
-					if(temp.equals("")) 
+					if (temp.equals(""))
 						msg = msg + f.getName() + "\n";
 					else
 						msg = msg + f.getName() + "-->" + temp + "\n";

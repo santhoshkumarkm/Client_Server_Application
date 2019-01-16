@@ -56,6 +56,19 @@ public class HTTPClient {
 		}
 	}
 
+	static void handleResponse(HttpResponse response) throws UnsupportedOperationException, IOException {
+		int status = response.getStatusLine().getStatusCode();
+		if (status >= 200 && status < 300) {
+			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+			String line = "";
+			while ((line = br.readLine()) != null) {
+				System.out.println(line);
+			}
+		} else {
+			System.out.println("Unexpected response status: " + status);
+		}
+	}
+
 	static void accessFolder(String name) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
 		List<String> list = new ArrayList<String>();
@@ -68,21 +81,12 @@ public class HTTPClient {
 			System.out.println("-----------------------------------------------------------");
 			HttpPost initialPost = new HttpPost(defaultUri + "/" + name + "?name=" + name);
 			HttpResponse response = client.execute(initialPost);
-			int status = response.getStatusLine().getStatusCode();
-			if (status >= 200 && status < 300) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-				String line = "";
-				while ((line = br.readLine()) != null) {
-					System.out.println(line);
-				}
-			} else {
-				System.out.println("Unexpected response status: " + status);
-			}
+			handleResponse(response);
 			int option = Utilities.selectOption(list);
 			switch (option) {
 			case NEW_FILE: {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
-//			String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
+//				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
 				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
 				File file = new File(fileUrl);
 				String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
@@ -107,16 +111,7 @@ public class HTTPClient {
 				nameValuePairs.add(new BasicNameValuePair("Subfolder", saveLocation));
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
-				status = response.getStatusLine().getStatusCode();
-				if (status >= 200 && status < 300) {
-					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-					String line = "";
-					while ((line = br.readLine()) != null) {
-						System.out.println(line);
-					}
-				} else {
-					System.out.println("Unexpected response status: " + status);
-				}
+				handleResponse(response);
 				break;
 			}
 			case NEW_SUBFOLDER: {
@@ -127,43 +122,24 @@ public class HTTPClient {
 				nameValuePairs.add(new BasicNameValuePair("File Name", folderName));
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
-				status = response.getStatusLine().getStatusCode();
-				if (status >= 200 && status < 300) {
-					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-					String line = "";
-					while ((line = br.readLine()) != null) {
-						System.out.println(line);
-					}
-				} else {
-					System.out.println("Unexpected response status: " + status);
-				}
+				handleResponse(response);
 				break;
 			}
 			case READ_FILE: {
 				String fileUrl = Utilities.inputString(
 						"file name (with folder path for subfolder files(Eg: sub_folder/file.txt))", ".*[.]txt", 1,
 						100);
-				String uri; 
-				if(fileUrl.contains("/")) {
+				String uri;
+				if (fileUrl.contains("/")) {
 					uri = defaultUri + "/read?" + "username=" + name + "&subfolder="
 							+ fileUrl.substring(0, fileUrl.indexOf('/')) + "&filename="
-							+ fileUrl.substring(fileUrl.indexOf('/') + 1, fileUrl.length());					
-				}
-				else {
+							+ fileUrl.substring(fileUrl.indexOf('/') + 1, fileUrl.length());
+				} else {
 					uri = defaultUri + "/read?" + "username=" + name + "&subfolder=" + "root" + "&filename=" + fileUrl;
 				}
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
-				status = response.getStatusLine().getStatusCode();
-				if (status >= 200 && status < 300) {
-					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-					String line = "";
-					while ((line = br.readLine()) != null) {
-						System.out.println(URLDecoder.decode(line, "UTF-8"));
-					}
-				} else {
-					System.out.println("Unexpected response status: " + status);
-				}
+				handleResponse(response);
 				break;
 			}
 			case LOGOUT: {
