@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
@@ -22,21 +24,17 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client = HttpClients.createDefault();
-	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2;
+	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, READ_FILE = 3, LOGOUT = 4;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
 		String password = Utilities.inputString("password", ".*", 1, 15);
+		Base64.Encoder encoder = Base64.getEncoder();
+		password = encoder.encodeToString(password.getBytes());
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + password + "&user="
 				+ userState;
 		HttpGet httpGet = null;
 		try {
-//			URI uri = new URIBuilder().setScheme("http")
-//		        .setHost("localhost")
-//		        .setPath("/login")
-//		        .setParameter("name", name)
-//		        .setParameter("password", password)
-//		        .build();
 			httpGet = new HttpGet(defaultUri);
 			HttpResponse response = client.execute(httpGet);
 			int status = response.getStatusLine().getStatusCode();
@@ -45,7 +43,7 @@ public class HTTPClient {
 				String line = "";
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
-					if (line.equals("Access granted") || line.equals("Root folder created")) {
+					if (line.contains("Access granted") || line.contains("Root folder created")) {
 						accessFolder(name);
 					}
 				}
@@ -61,70 +59,117 @@ public class HTTPClient {
 	}
 
 	static void accessFolder(String name) throws ClientProtocolException, IOException {
-		String defaultUri = "http://localhost:8500/access/name";
+		String defaultUri = "http://localhost:8500/access";
 
-		System.out.println("Current path: " + "/" + name);
+		System.out.println("Current user: " + "/" + name);
+		HttpPost initialPost = new HttpPost(defaultUri + "/" + name + "?name=" + name);
+		HttpResponse response = client.execute(initialPost);
+		int status = response.getStatusLine().getStatusCode();
+		if (status >= 200 && status < 300) {
+			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+			String line = "";
+			while ((line = br.readLine()) != null) {
+				System.out.println(line);
+			}
+		} else {
+			System.out.println("Unexpected response status: " + status);
+		}
+
 		List<String> list = new ArrayList<String>();
 		list.add("Save New File");
-		list.add("New SubFolder");
-		int option = Utilities.selectOption(list);
-		switch (option) {
-		case NEW_FILE: {
+		list.add("Create New SubFolder");
+		list.add("Read File");
+		list.add("Logout");
+		outer: while (true) {
+			System.out.println("-----------------------------------------------------------");
+			int option = Utilities.selectOption(list);
+			switch (option) {
+			case NEW_FILE: {
+				HttpPost post = new HttpPost(defaultUri + "/create/file");
 //			String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
-			String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/san/test_file 1.txt";
-			File file = new File(fileUrl);
-			String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
-			String saveLocation = Utilities.inputString("save folder name", ".*", 1, 20);
-			if (!saveLocation.equals(name)) {
-				saveLocation = name +"//" + saveLocation;
-			}
-			HttpPost post = new HttpPost(defaultUri);
-			BufferedReader bin = new BufferedReader(new FileReader(file));
-			StringBuilder stringBuilder = new StringBuilder();
-			String s = "";
-			while ((s = bin.readLine()) != null) {
-				stringBuilder.append(s + "\n");
-			}
-			bin.close();
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-			nameValuePairs.add(new BasicNameValuePair("Location", saveLocation));
-			nameValuePairs.add(new BasicNameValuePair(fileName, stringBuilder.toString()));
-			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			HttpResponse response = client.execute(post);
-			int status = response.getStatusLine().getStatusCode();
-			if (status >= 200 && status < 300) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-				String line = "";
-				while ((line = br.readLine()) != null) {
-					System.out.println(line);
+				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
+				File file = new File(fileUrl);
+				String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
+				String saveLocation = Utilities
+						.inputString("save folder location (Enter \"root\" to save at root folder)", ".*", 1, 20);
+				StringBuilder stringBuilder = new StringBuilder();
+				if (file.exists()) {
+					BufferedReader bin = new BufferedReader(new FileReader(file));
+					String s = "";
+					while ((s = bin.readLine()) != null) {
+						stringBuilder.append(s + "\n");
+					}
+					bin.close();
+				} else {
+					System.out.println("File not exists.");
+					break;
 				}
-			} else {
-				System.out.println("Unexpected response status: " + status);
-			}
-			break;
-		}
-		case NEW_SUBFOLDER: {
-			String folderName = Utilities.inputString("folder name", ".*", 1, 10);
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-			nameValuePairs.add(new BasicNameValuePair("Location", name));
-			nameValuePairs.add(new BasicNameValuePair(folderName, ""));
-			HttpPost post = new HttpPost(defaultUri);
-			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			HttpResponse response = client.execute(post);
-			int status = response.getStatusLine().getStatusCode();
-			if (status >= 200 && status < 300) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-				String line = "";
-				while ((line = br.readLine()) != null) {
-					System.out.println(line);
-					if (line.equals(""))
-						accessFolder(name);
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				nameValuePairs.add(new BasicNameValuePair("user", name));
+				nameValuePairs.add(new BasicNameValuePair("File Name", fileName));
+				nameValuePairs.add(new BasicNameValuePair("File Content", stringBuilder.toString()));
+				nameValuePairs.add(new BasicNameValuePair("Subfolder", saveLocation));
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				status = response.getStatusLine().getStatusCode();
+				if (status >= 200 && status < 300) {
+					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+					String line = "";
+					while ((line = br.readLine()) != null) {
+						System.out.println(line);
+					}
+				} else {
+					System.out.println("Unexpected response status: " + status);
 				}
-			} else {
-				System.out.println("Unexpected response status: " + status);
+				break;
 			}
-			break;
-		}
+			case NEW_SUBFOLDER: {
+				HttpPost post = new HttpPost(defaultUri + "/create/folder");
+				String folderName = Utilities.inputString("folder name", ".*", 1, 10);
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				nameValuePairs.add(new BasicNameValuePair("Location", name));
+				nameValuePairs.add(new BasicNameValuePair("File Name", folderName));
+//				HttpPost post = new HttpPost(defaultUri);
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				status = response.getStatusLine().getStatusCode();
+				if (status >= 200 && status < 300) {
+					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+					String line = "";
+					while ((line = br.readLine()) != null) {
+						System.out.println(line);
+					}
+				} else {
+					System.out.println("Unexpected response status: " + status);
+				}
+				break;
+			}
+			case READ_FILE: {
+				String fileUrl = Utilities.inputString(
+						"file name (with folder path for subfolder files(Eg: sub_folder/file.txt))", ".*[.]txt", 1,
+						100);
+
+				HttpPost post = new HttpPost(defaultUri + "/read?" + "username=" + name + "&subfolder="
+						+ fileUrl.substring(0, fileUrl.indexOf('/')) + "&filename="
+						+ fileUrl.substring(fileUrl.indexOf('/') + 1, fileUrl.length()));
+//				HttpPost post = new HttpPost(defaultUri);
+				response = client.execute(post);
+				status = response.getStatusLine().getStatusCode();
+				if (status >= 200 && status < 300) {
+					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+					String line = "";
+					while ((line = br.readLine()) != null) {
+						System.out.println(URLDecoder.decode(line, "UTF-8"));
+					}
+				} else {
+					System.out.println("Unexpected response status: " + status);
+				}
+				break;
+			}
+			case LOGOUT: {
+				break outer;
+			}
+			}
 		}
 	}
 
@@ -132,16 +177,18 @@ public class HTTPClient {
 		List<String> list = new ArrayList<String>();
 		list.add("Login");
 		list.add("Sign Up");
-		int option = Utilities.selectOption(list);
-		switch (option) {
-		case 1: {
-			login("existing");
-			break;
-		}
-		case 2: {
-			login("new");
-			break;
-		}
+		while (true) {
+			int option = Utilities.selectOption(list);
+			switch (option) {
+			case 1: {
+				login("existing");
+				break;
+			}
+			case 2: {
+				login("new");
+				break;
+			}
+			}
 		}
 	}
 

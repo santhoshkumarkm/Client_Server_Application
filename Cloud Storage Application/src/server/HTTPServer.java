@@ -2,6 +2,7 @@ package server;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,7 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.Map;
+import java.util.Base64;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -33,47 +34,77 @@ class AccessHandler implements HttpHandler {
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
 		URI uri = ex.getRequestURI();
-		InputStream in = ex.getRequestBody();
-		BufferedReader bin = new BufferedReader(new InputStreamReader(in));
-		StringBuilder stringBuilder = new StringBuilder();
-		String s = "";
-		while ((s = bin.readLine()) != null) {
-			stringBuilder.append(s + "\n");
-		}
+		String uriPath = uri.getPath();
 		String msg = "";
-		if (create(stringBuilder.toString())) {
-			msg = "success";
-		} else
-			msg = "not success";
+		if (uri.getPath().contains("create")) {
+			InputStream in = ex.getRequestBody();
+			BufferedReader bin = new BufferedReader(new InputStreamReader(in));
+			StringBuilder stringBuilder = new StringBuilder();
+			String s = "";
+			while ((s = bin.readLine()) != null) {
+				stringBuilder.append(s + "\n");
+			}
+			bin.close();
+			if (create(stringBuilder.toString(), uriPath)) {
+				msg = "success";
+			} else
+				msg = "not success";
+		} else if (uri.getPath().contains("read")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			File file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0]);
+			if (file.exists()) {
+				BufferedReader bin = new BufferedReader(new FileReader(file));
+				StringBuilder stringBuilder = new StringBuilder();
+				String s = "";
+				while ((s = bin.readLine()) != null) {
+					stringBuilder.append(s + "\n");
+				}
+				bin.close();
+				msg = stringBuilder.toString();
+			}
+		} else {
+			String[] userRootAttributes = Utilities.queryToMap(uri.getQuery());
+			File file = new File(HTTPServer.defaultLocation + "/" + userRootAttributes[0]);
+			if (file.exists()) {
+				for (File f : file.listFiles()) {
+					msg = f.getName() + "\n";
+				}
+			}
+			if (msg.equals(""))
+				msg = "No files currently present";
+			else
+				msg = "Files present...\n" + msg;
+		}
 		OutputStream os = ex.getResponseBody();
 		ex.sendResponseHeaders(200, msg.length());
 		os.write(msg.getBytes());
 		os.close();
 	}
 
-	private boolean create(String full) throws IOException {
-		Map<String, String> params = Utilities.queryToMap(full);
+	private boolean create(String request, String uriPath) throws IOException {
 		String fileLocation = "", fileName = "", content = "";
-		int i = 0;
-		for (Map.Entry<String, String> entry : params.entrySet()) {
-			if (i == 0)
-				fileLocation = entry.getValue();
-			else {
-				fileName = entry.getKey();
-				content = entry.getValue();
+		String fileAttributes[] = Utilities.queryToMap(request);
+		fileLocation = fileAttributes[0];
+		fileName = fileAttributes[1];
+		File file;
+		if (uriPath.contains("folder")) {
+			file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
+			if (!file.exists()) {
+				file.mkdir();
+				return true;
 			}
-			i++;
-		}
-		File file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
-		if (!file.exists()) {
-			if (fileName.contains(".txt")) {
+		} else {
+			content = fileAttributes[2];
+			if (!fileAttributes[3].contains("root") && !fileAttributes[3].contains("ROOT"))
+				fileLocation = fileLocation + "/" + fileAttributes[3];
+			file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
+			if (new File(HTTPServer.defaultLocation + "/" + fileLocation).exists() && !file.exists()) {
 				file.createNewFile();
 				FileWriter fw = new FileWriter(file);
 				fw.write(content);
 				fw.close();
-			} else
-				file.mkdir();
-			return true;
+				return true;
+			}
 		}
 		return false;
 	}
@@ -84,26 +115,24 @@ class LoginHandler implements HttpHandler {
 	public void handle(HttpExchange ex) throws IOException {
 		System.out.println("Client Connected");
 		URI uri = ex.getRequestURI();
-		Map<String, String> params = Utilities.queryToMap(uri.getQuery());
-		String[] user = new String[params.size()];
-		int i = 0;
-		for (Map.Entry<String, String> entry : params.entrySet()) {
-			user[i++] = entry.getValue();
-		}
-		String path = HTTPServer.defaultLocation + user[0];
-		File file = new File(path);
-		OutputStream os = ex.getResponseBody();
+		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
+		String name = userAttributes[0], userType = userAttributes[2];
+		Base64.Decoder decoder = Base64.getDecoder();
+		String password = new String(decoder.decode(userAttributes[1].getBytes()));
+		File file = new File(HTTPServer.defaultLocation + name);
 		String msg = "";
-		if (file.exists() && user[2].equals("new")) {
-			msg = "Username already present";
-		} else if (file.exists() && user[2].equals("existing")) {
-			msg = "Access granted";
-		} else if (!file.exists() && user[2].equals("new")) {
-			file.mkdir();
-			msg = "Root folder created";
-		} else if (!file.exists() && user[2].equals("existing")) {
-			msg = "User not registered";
+		if (userType.equals("new")) {
+			if (!file.exists()) {
+				LoginList.addEntry(name, password);
+				file.mkdir();
+				msg = "Root folder created for user " + name;
+			} else {
+				msg = "Username already present";
+			}
+		} else {
+			msg = LoginList.checkEntry(name, password);
 		}
+		OutputStream os = ex.getResponseBody();
 		ex.sendResponseHeaders(200, msg.length());
 		os.write(msg.getBytes());
 		os.close();
