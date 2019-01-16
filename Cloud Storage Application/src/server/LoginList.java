@@ -1,24 +1,22 @@
 package server;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class LoginList {
-	private static List<String[]> entryList = new LinkedList<String[]>();
+	private static Map<String, String> entryList = new LinkedHashMap<String, String>();
 
 	public static void addEntry(String name, String password) {
-		String[] entry = { name, password };
-		entryList.add(entry);
+		entryList.put(name, password);
 	}
 
 	public static String checkEntry(String name, String password) {
-		for (String[] s : entryList) {
-			if (s[0].equals(name)) {
-				if (s[1].equals(password)) {
+		for (Map.Entry<String, String> entry : entryList.entrySet()) {
+			if (entry.getKey().equals(name)) {
+				if (entry.getValue().equals(password))
 					return "Access granted";
-				} else {
+				else
 					return "Wrong password";
-				}
 			}
 		}
 		return "User not registered";

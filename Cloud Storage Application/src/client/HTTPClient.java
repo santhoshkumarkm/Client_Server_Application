@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
@@ -29,9 +28,8 @@ public class HTTPClient {
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
 		String password = Utilities.inputString("password", ".*", 1, 15);
-		Base64.Encoder encoder = Base64.getEncoder();
-		password = encoder.encodeToString(password.getBytes());
-		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + password + "&user="
+		int hashPassword = password.hashCode();
+		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;
 		HttpGet httpGet = null;
 		try {
@@ -60,28 +58,26 @@ public class HTTPClient {
 
 	static void accessFolder(String name) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
-
-		System.out.println("Current user: " + "/" + name);
-		HttpPost initialPost = new HttpPost(defaultUri + "/" + name + "?name=" + name);
-		HttpResponse response = client.execute(initialPost);
-		int status = response.getStatusLine().getStatusCode();
-		if (status >= 200 && status < 300) {
-			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-			String line = "";
-			while ((line = br.readLine()) != null) {
-				System.out.println(line);
-			}
-		} else {
-			System.out.println("Unexpected response status: " + status);
-		}
-
 		List<String> list = new ArrayList<String>();
 		list.add("Save New File");
 		list.add("Create New SubFolder");
 		list.add("Read File");
 		list.add("Logout");
 		outer: while (true) {
+			System.out.println("Current path: " + "/" + name);
 			System.out.println("-----------------------------------------------------------");
+			HttpPost initialPost = new HttpPost(defaultUri + "/" + name + "?name=" + name);
+			HttpResponse response = client.execute(initialPost);
+			int status = response.getStatusLine().getStatusCode();
+			if (status >= 200 && status < 300) {
+				BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+				String line = "";
+				while ((line = br.readLine()) != null) {
+					System.out.println(line);
+				}
+			} else {
+				System.out.println("Unexpected response status: " + status);
+			}
 			int option = Utilities.selectOption(list);
 			switch (option) {
 			case NEW_FILE: {
@@ -129,7 +125,6 @@ public class HTTPClient {
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("Location", name));
 				nameValuePairs.add(new BasicNameValuePair("File Name", folderName));
-//				HttpPost post = new HttpPost(defaultUri);
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				status = response.getStatusLine().getStatusCode();
@@ -148,11 +143,16 @@ public class HTTPClient {
 				String fileUrl = Utilities.inputString(
 						"file name (with folder path for subfolder files(Eg: sub_folder/file.txt))", ".*[.]txt", 1,
 						100);
-
-				HttpPost post = new HttpPost(defaultUri + "/read?" + "username=" + name + "&subfolder="
-						+ fileUrl.substring(0, fileUrl.indexOf('/')) + "&filename="
-						+ fileUrl.substring(fileUrl.indexOf('/') + 1, fileUrl.length()));
-//				HttpPost post = new HttpPost(defaultUri);
+				String uri; 
+				if(fileUrl.contains("/")) {
+					uri = defaultUri + "/read?" + "username=" + name + "&subfolder="
+							+ fileUrl.substring(0, fileUrl.indexOf('/')) + "&filename="
+							+ fileUrl.substring(fileUrl.indexOf('/') + 1, fileUrl.length());					
+				}
+				else {
+					uri = defaultUri + "/read?" + "username=" + name + "&subfolder=" + "root" + "&filename=" + fileUrl;
+				}
+				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
 				status = response.getStatusLine().getStatusCode();
 				if (status >= 200 && status < 300) {

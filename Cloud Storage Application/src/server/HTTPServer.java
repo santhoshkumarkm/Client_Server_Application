@@ -10,7 +10,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.Base64;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -30,7 +29,6 @@ public class HTTPServer {
 }
 
 class AccessHandler implements HttpHandler {
-
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
 		URI uri = ex.getRequestURI();
@@ -51,7 +49,13 @@ class AccessHandler implements HttpHandler {
 				msg = "not success";
 		} else if (uri.getPath().contains("read")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			File file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0]);
+			File file;
+			if (readFileAttributes[1].equals("root")) {
+				file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[2]);
+			} else {
+				file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]
+						+ "?/" + readFileAttributes[2]);
+			}
 			if (file.exists()) {
 				BufferedReader bin = new BufferedReader(new FileReader(file));
 				StringBuilder stringBuilder = new StringBuilder();
@@ -61,13 +65,24 @@ class AccessHandler implements HttpHandler {
 				}
 				bin.close();
 				msg = stringBuilder.toString();
+			} else {
+				msg = "File not found";
 			}
 		} else {
 			String[] userRootAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(HTTPServer.defaultLocation + "/" + userRootAttributes[0]);
 			if (file.exists()) {
 				for (File f : file.listFiles()) {
-					msg = f.getName() + "\n";
+					String temp = "";
+					if (f.isDirectory() && f.listFiles().length != 0) {
+						for (File f1 : f.listFiles()) {
+							temp = temp + f1.getName() + ",";
+						}
+					}
+					if(temp.equals("")) 
+						msg = msg + f.getName() + "\n";
+					else
+						msg = msg + f.getName() + "-->" + temp + "\n";
 				}
 			}
 			if (msg.equals(""))
@@ -90,7 +105,7 @@ class AccessHandler implements HttpHandler {
 		if (uriPath.contains("folder")) {
 			file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
 			if (!file.exists()) {
-				file.mkdir();
+				file.mkdirs();
 				return true;
 			}
 		} else {
@@ -116,9 +131,7 @@ class LoginHandler implements HttpHandler {
 		System.out.println("Client Connected");
 		URI uri = ex.getRequestURI();
 		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
-		String name = userAttributes[0], userType = userAttributes[2];
-		Base64.Decoder decoder = Base64.getDecoder();
-		String password = new String(decoder.decode(userAttributes[1].getBytes()));
+		String name = userAttributes[0], userType = userAttributes[2], password = userAttributes[1];
 		File file = new File(HTTPServer.defaultLocation + name);
 		String msg = "";
 		if (userType.equals("new")) {
