@@ -88,8 +88,8 @@ public class HTTPClient {
 			if (flag) {
 				break;
 			}
+			System.out.println("-----------------------------------------------------------");
 			System.out.println("Current directory: " + "/" + name);
-
 			System.out.println("-----------------------------------------------------------");
 			HttpPost initialPost = new HttpPost(defaultUri + "/" + name + "?name=" + name);
 			HttpResponse response = client.execute(initialPost);
@@ -161,9 +161,6 @@ public class HTTPClient {
 			case LOG_OUT: {
 				return true;
 			}
-			}
-			if (flag) {
-				break;
 			}
 		}
 		return true;
