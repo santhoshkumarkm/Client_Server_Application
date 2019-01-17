@@ -182,7 +182,6 @@ public class HTTPClient {
 			}
 			case 2: {
 				login("new");
-				break;
 			}
 			}
 		}
