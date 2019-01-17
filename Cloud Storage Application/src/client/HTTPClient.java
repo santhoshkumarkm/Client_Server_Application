@@ -64,7 +64,7 @@ public class HTTPClient {
 			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 			while ((line = br.readLine()) != null) {
 				System.out.println(URLDecoder.decode(line, "UTF-8"));
-				if(line.equals("Folder present")) {
+				if (line.equals("Folder present")) {
 					return true;
 				}
 			}
@@ -84,8 +84,8 @@ public class HTTPClient {
 		list.add("Go back directory");
 		list.add("Logout");
 		boolean flag = false;
-		outer: while (true) {
-			if(flag) {
+		while (true) {
+			if (flag) {
 				break;
 			}
 			System.out.println("Current directory: " + "/" + name);
@@ -148,7 +148,7 @@ public class HTTPClient {
 				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
-				if(handleResponse(response)){					
+				if (handleResponse(response)) {
 					flag = accessFolder(name + "/" + folderName);
 				} else {
 					System.out.println("No such folder");
@@ -162,7 +162,7 @@ public class HTTPClient {
 				return true;
 			}
 			}
-			if(flag) {
+			if (flag) {
 				break;
 			}
 		}

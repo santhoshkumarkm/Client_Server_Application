@@ -61,7 +61,8 @@ class AccessHandler implements HttpHandler {
 			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			File file = new File(HTTPServer.defaultLocation + "/" + readFileAttributes[0]+"/"+readFileAttributes[1]);
+			File file = new File(
+					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
 			if (file.exists()) {
 				msg = "Folder present";
 			} else {
@@ -96,7 +97,7 @@ class AccessHandler implements HttpHandler {
 	}
 
 	private boolean create(String request, String uriPath) throws IOException {
-		request = request.substring(0,request.length()-1);
+		request = request.substring(0, request.length() - 1);
 		String fileLocation = "", fileName = "", content = "";
 		String fileAttributes[] = Utilities.queryToMap(request);
 		fileLocation = fileAttributes[0];
@@ -108,13 +109,11 @@ class AccessHandler implements HttpHandler {
 				return true;
 			} else {
 				content = fileAttributes[2];
-//				if (new File(HTTPServer.defaultLocation + "/" + fileLocation).exists()) {
 				file.createNewFile();
 				FileWriter fw = new FileWriter(file);
 				fw.write(content);
 				fw.close();
 				return true;
-//				}
 			}
 		}
 		return false;
@@ -123,6 +122,19 @@ class AccessHandler implements HttpHandler {
 
 class LoginHandler implements HttpHandler {
 	public void handle(HttpExchange ex) throws IOException {
+		File listFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/clientlist.txt");
+		LoginList loginList = null;
+		if(listFile.exists()) {
+			try {
+				System.out.println("reading");
+				loginList = (LoginList) Utilities.readFile(listFile);
+			} catch (Exception e) {
+				System.out.println("creating");
+				e.printStackTrace();
+			}			
+		} else {
+			loginList = new LoginList();
+		}
 		System.out.println("Client Connected");
 		URI uri = ex.getRequestURI();
 		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
@@ -131,14 +143,19 @@ class LoginHandler implements HttpHandler {
 		String msg = "";
 		if (userType.equals("new")) {
 			if (!file.exists()) {
-				LoginList.addEntry(name, password);
+				loginList.addEntry(name, password);
 				file.mkdir();
+				try {
+					Utilities.writeFile(listFile, loginList);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				msg = "Root folder created for user " + name;
 			} else {
 				msg = "Username already present";
 			}
 		} else {
-			msg = LoginList.checkEntry(name, password);
+			msg = loginList.checkEntry(name, password);
 		}
 		OutputStream os = ex.getResponseBody();
 		ex.sendResponseHeaders(200, msg.length());

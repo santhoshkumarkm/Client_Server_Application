@@ -1,5 +1,10 @@
 package server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.LinkedHashMap;
@@ -9,6 +14,10 @@ import java.util.Scanner;
 
 public class Utilities {
 	public static Scanner scan = new Scanner(System.in).useDelimiter("\n");
+	private static FileInputStream fin;
+	private static ObjectInputStream oin;
+	private static FileOutputStream fout;
+	private static ObjectOutputStream oout;
 
 	public static String inputString(String name, String match, int minLength, int maxLength) {
 		String string;
@@ -71,5 +80,26 @@ public class Utilities {
 			user[i++] = entry.getValue();
 		}
 		return user;
+	}
+	
+	public static Object readFile(File file) throws Exception{
+		fin = new FileInputStream(file);
+		oin = new ObjectInputStream(fin);
+		Object object = oin.readObject();
+		if(oin != null)
+			oin.close();
+		if(fin != null)
+			fin.close();
+		return object;
+	}
+
+	public static void writeFile(File file, Object object) throws Exception{
+		fout = new FileOutputStream(file);
+		oout = new ObjectOutputStream(fout);
+		oout.writeObject(object);
+		if(fout != null)
+			fout.close();
+		if(oout != null)
+			oout.close();
 	}
 }
