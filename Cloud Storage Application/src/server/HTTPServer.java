@@ -59,15 +59,6 @@ class AccessHandler implements HttpHandler {
 			} else {
 				msg = "File not found";
 			}
-//		}  else if (uri.getPath().contains("edit")) {
-//			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-//			File file = new File(
-//					HTTPServer.defaultLocation + "/" + readFileAttributes[0]);
-//			if (file.exists()) {
-//				msg = stringBuilder(new BufferedReader(new FileReader(file)));
-//			} else {
-//				msg = "File not found";
-//			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(

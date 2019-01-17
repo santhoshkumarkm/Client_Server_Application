@@ -23,8 +23,8 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client = HttpClients.createDefault();
-	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, READ_FILE = 3, EDIT_FILE = 4, CHANGE_DIRECTORY = 5,
-			GO_BACK_DIRECTORY = 6, LOG_OUT = 7;
+	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, OPEN_FILE = 3, CHANGE_DIRECTORY = 4,
+			GO_BACK_DIRECTORY =5, LOG_OUT = 6;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
@@ -79,8 +79,7 @@ public class HTTPClient {
 		List<String> list = new ArrayList<String>();
 		list.add("Save New File");
 		list.add("Create New SubFolder");
-		list.add("Read Text File");
-		list.add("Edit Text File");
+		list.add("Open File");
 		list.add("Change current directory");
 		list.add("Go back directory");
 		list.add("Logout");
@@ -136,15 +135,15 @@ public class HTTPClient {
 				handleResponse(response);
 				break;
 			}
-			case READ_FILE: {
-				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
-				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
-				HttpPost post = new HttpPost(uri);
-				response = client.execute(post);
-				handleResponse(response);
-				break;
-			}
-			case EDIT_FILE: {
+//			case READ_FILE: {
+//				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
+//				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
+//				HttpPost post = new HttpPost(uri);
+//				response = client.execute(post);
+//				handleResponse(response);
+//				break;
+//			}
+			case OPEN_FILE: {
 				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
 				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
 				HttpPost post = new HttpPost(uri);
@@ -160,11 +159,10 @@ public class HTTPClient {
 				} else {
 					System.out.println("Unexpected response status: " + status);
 				}
+				
 
-				uri = defaultUri + "/create/file/edit";
 				TextEditor textEditor = new TextEditor(paragraph, fileName);
 				textEditor.start();
-				String edited = "";
 				while (textEditor.getStatus()) {
 					try {
 						Thread.currentThread();
@@ -173,17 +171,20 @@ public class HTTPClient {
 						e.printStackTrace();
 					}
 				}
-				edited = textEditor.getEditedParagraph();
-				post = new HttpPost(uri);
-				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-				nameValuePairs.add(new BasicNameValuePair("File location", name));
-				nameValuePairs.add(new BasicNameValuePair("File name", fileName));
-				nameValuePairs.add(new BasicNameValuePair("File content", edited));
-				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-				response = client.execute(post);
-				handleResponse(response);
+				
+				String edited = textEditor.getEditedParagraph();
+				if(textEditor.getEdit()) {
+					uri = defaultUri + "/create/file/edit";
+					post = new HttpPost(uri);
+					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+					nameValuePairs.add(new BasicNameValuePair("File location", name));
+					nameValuePairs.add(new BasicNameValuePair("File name", fileName));
+					nameValuePairs.add(new BasicNameValuePair("File content", edited));
+					post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+					response = client.execute(post);
+					handleResponse(response);					
+				}
 				break;
-
 			}
 			case CHANGE_DIRECTORY: {
 				String folderName = Utilities.inputString("folder name", ".*", 1, 20);
