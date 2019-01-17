@@ -180,9 +180,7 @@ public class HTTPClient {
 				login("existing");
 				break;
 			}
-			case 2: {
-				login("new");
-			}
+			case 2: login("new");
 			}
 		}
 	}
