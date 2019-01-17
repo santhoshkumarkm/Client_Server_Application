@@ -1,5 +1,12 @@
 package server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +14,10 @@ import java.util.Scanner;
 
 public class Utilities {
 	public static Scanner scan = new Scanner(System.in).useDelimiter("\n");
+	private static FileInputStream fin;
+	private static ObjectInputStream oin;
+	private static FileOutputStream fout;
+	private static ObjectOutputStream oout;
 
 	public static String inputString(String name, String match, int minLength, int maxLength) {
 		String string;
@@ -52,16 +63,15 @@ public class Utilities {
 		return selectedValue;
 	}
 
-	public static String[] queryToMap(String query) {
+	public static String[] queryToMap(String query) throws UnsupportedEncodingException {
 		query = query.substring(1);
-//		Map<String, String> params = Utilities.queryToMap(uri.getQuery());
 		Map<String, String> result = new LinkedHashMap<String, String>();
 		for (String param : query.split("&")) {
 			String pair[] = param.split("=");
 			if (pair.length > 1) {
-				result.put(pair[0], pair[1]);
+				result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
 			} else {
-				result.put(pair[0], "");
+				result.put(URLDecoder.decode(pair[0], "UTF-8"), "");
 			}
 		}
 		String[] user = new String[result.size()];
@@ -70,5 +80,26 @@ public class Utilities {
 			user[i++] = entry.getValue();
 		}
 		return user;
+	}
+	
+	public static Object readFile(File file) throws Exception{
+		fin = new FileInputStream(file);
+		oin = new ObjectInputStream(fin);
+		Object object = oin.readObject();
+		if(oin != null)
+			oin.close();
+		if(fin != null)
+			fin.close();
+		return object;
+	}
+
+	public static void writeFile(File file, Object object) throws Exception{
+		fout = new FileOutputStream(file);
+		oout = new ObjectOutputStream(fout);
+		oout.writeObject(object);
+		if(fout != null)
+			fout.close();
+		if(oout != null)
+			oout.close();
 	}
 }
