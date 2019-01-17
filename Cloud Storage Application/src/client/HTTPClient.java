@@ -99,8 +99,8 @@ public class HTTPClient {
 			switch (option) {
 			case NEW_FILE: {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
-//				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
-				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
+				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
+//				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
 				File file = new File(fileUrl);
 				String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
 				StringBuilder stringBuilder = new StringBuilder();
