@@ -59,6 +59,15 @@ class AccessHandler implements HttpHandler {
 			} else {
 				msg = "File not found";
 			}
+//		}  else if (uri.getPath().contains("edit")) {
+//			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+//			File file = new File(
+//					HTTPServer.defaultLocation + "/" + readFileAttributes[0]);
+//			if (file.exists()) {
+//				msg = stringBuilder(new BufferedReader(new FileReader(file)));
+//			} else {
+//				msg = "File not found";
+//			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(
@@ -115,6 +124,16 @@ class AccessHandler implements HttpHandler {
 				fw.close();
 				return true;
 			}
+		} else {
+			if (uriPath.contains("edit")) {
+				file.delete();
+				content = fileAttributes[2];
+				file.createNewFile();
+				FileWriter fw = new FileWriter(file);
+				fw.write(content);
+				fw.close();
+				return true;
+			}
 		}
 		return false;
 	}
@@ -124,14 +143,12 @@ class LoginHandler implements HttpHandler {
 	public void handle(HttpExchange ex) throws IOException {
 		File listFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/clientlist.txt");
 		LoginList loginList = null;
-		if(listFile.exists()) {
+		if (listFile.exists()) {
 			try {
-				System.out.println("reading");
 				loginList = (LoginList) Utilities.readFile(listFile);
 			} catch (Exception e) {
-				System.out.println("creating");
 				e.printStackTrace();
-			}			
+			}
 		} else {
 			loginList = new LoginList();
 		}

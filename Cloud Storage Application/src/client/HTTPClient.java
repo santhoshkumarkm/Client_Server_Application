@@ -23,8 +23,8 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client = HttpClients.createDefault();
-	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, READ_FILE = 3, CHANGE_DIRECTORY = 4,
-			GO_BACK_DIRECTORY = 5, LOG_OUT = 6;
+	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, READ_FILE = 3, EDIT_FILE = 4, CHANGE_DIRECTORY = 5,
+			GO_BACK_DIRECTORY = 6, LOG_OUT = 7;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
@@ -79,7 +79,8 @@ public class HTTPClient {
 		List<String> list = new ArrayList<String>();
 		list.add("Save New File");
 		list.add("Create New SubFolder");
-		list.add("Read File");
+		list.add("Read Text File");
+		list.add("Edit Text File");
 		list.add("Change current directory");
 		list.add("Go back directory");
 		list.add("Logout");
@@ -136,12 +137,53 @@ public class HTTPClient {
 				break;
 			}
 			case READ_FILE: {
-				String fileUrl = Utilities.inputString("file name", ".*[.]txt", 1, 100);
-				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileUrl;
+				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
+				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
 				handleResponse(response);
 				break;
+			}
+			case EDIT_FILE: {
+				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
+				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				int status = response.getStatusLine().getStatusCode();
+				String line = "", paragraph = "";
+
+				if (status >= 200 && status < 300) {
+					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+					while ((line = br.readLine()) != null) {
+						paragraph = paragraph + line + "\n";
+					}
+				} else {
+					System.out.println("Unexpected response status: " + status);
+				}
+
+				uri = defaultUri + "/create/file/edit";
+				TextEditor textEditor = new TextEditor(paragraph, fileName);
+				textEditor.start();
+				String edited = "";
+				while (textEditor.getStatus()) {
+					try {
+						Thread.currentThread();
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				edited = textEditor.getEditedParagraph();
+				post = new HttpPost(uri);
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				nameValuePairs.add(new BasicNameValuePair("File location", name));
+				nameValuePairs.add(new BasicNameValuePair("File name", fileName));
+				nameValuePairs.add(new BasicNameValuePair("File content", edited));
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				handleResponse(response);
+				break;
+
 			}
 			case CHANGE_DIRECTORY: {
 				String folderName = Utilities.inputString("folder name", ".*", 1, 20);
@@ -177,7 +219,8 @@ public class HTTPClient {
 				login("existing");
 				break;
 			}
-			case 2: login("new");
+			case 2:
+				login("new");
 			}
 		}
 	}
