@@ -21,7 +21,7 @@ import org.apache.http.message.BasicNameValuePair;
 import server.Utilities;
 
 public class HTTPClient {
-	static CloseableHttpClient client = HttpClients.createDefault();
+	static CloseableHttpClient client;
 	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, NEW_SUBFOLDER = 4, CHANGE_DIRECTORY = 5,
 			GO_BACK_DIRECTORY = 6, DELETE = 7, LOG_OUT = 8;
 
@@ -32,6 +32,7 @@ public class HTTPClient {
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;
 		HttpPost httpPost = null;
+		//fdwsdas
 		try {
 			httpPost = new HttpPost(defaultUri);
 			HttpResponse response = client.execute(httpPost);
@@ -235,6 +236,7 @@ public class HTTPClient {
 	}
 
 	public static void main(String[] args) {
+		client = HttpClients.createDefault();
 		List<String> list = new ArrayList<String>();
 		list.add("Login");
 		list.add("Sign Up");
