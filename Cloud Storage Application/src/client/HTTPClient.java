@@ -23,8 +23,8 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client = HttpClients.createDefault();
-	final private static int NEW_FILE = 1, NEW_SUBFOLDER = 2, OPEN_FILE = 3, CHANGE_DIRECTORY = 4,
-			GO_BACK_DIRECTORY =5, LOG_OUT = 6;
+	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, NEW_SUBFOLDER = 4, CHANGE_DIRECTORY = 5,
+			GO_BACK_DIRECTORY = 6, DELETE =7, LOG_OUT = 8;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
@@ -64,7 +64,7 @@ public class HTTPClient {
 			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 			while ((line = br.readLine()) != null) {
 				System.out.println(URLDecoder.decode(line, "UTF-8"));
-				if (line.equals("Folder present")) {
+				if (line.equals("Folder present") || line.equals("Success")) {
 					return true;
 				}
 			}
@@ -74,14 +74,43 @@ public class HTTPClient {
 		return false;
 	}
 
+	private static void editor(String mode, String paragraph, String name, String fileName, String uri,
+			String defaultUri, HttpPost post, HttpResponse response) throws ClientProtocolException, IOException {
+		TextEditor textEditor = new TextEditor(mode, paragraph, fileName);
+		textEditor.start();
+		while (textEditor.getStatus()) {
+			try {
+				Thread.currentThread();
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
+		String edited = textEditor.getEditedParagraph();
+		if (textEditor.isEdited()) {
+			uri = defaultUri + "/create/file/edit";
+			post = new HttpPost(uri);
+			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+			nameValuePairs.add(new BasicNameValuePair("File location", name));
+			nameValuePairs.add(new BasicNameValuePair("File name", fileName));
+			nameValuePairs.add(new BasicNameValuePair("File content", edited));
+			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+			response = client.execute(post);
+			handleResponse(response);
+		}
+	}
+
 	static boolean accessFolder(String name) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
 		List<String> list = new ArrayList<String>();
-		list.add("Save New File");
-		list.add("Create New SubFolder");
+		list.add("Upload File");
+		list.add("New File");
 		list.add("Open File");
+		list.add("Create New SubFolder");
 		list.add("Change current directory");
 		list.add("Go back directory");
+		list.add("Delete file/folder");
 		list.add("Logout");
 		boolean flag = false;
 		while (true) {
@@ -97,10 +126,10 @@ public class HTTPClient {
 
 			int option = Utilities.selectOption(list);
 			switch (option) {
-			case NEW_FILE: {
+			case UPLOAD_FILE: {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
-				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
-//				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
+//				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
+				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
 				File file = new File(fileUrl);
 				String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
 				StringBuilder stringBuilder = new StringBuilder();
@@ -112,7 +141,7 @@ public class HTTPClient {
 					}
 					bin.close();
 				} else {
-					System.out.println("File not exists.");
+					System.out.println("File not exists");
 					break;
 				}
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
@@ -124,27 +153,24 @@ public class HTTPClient {
 				handleResponse(response);
 				break;
 			}
-			case NEW_SUBFOLDER: {
-				HttpPost post = new HttpPost(defaultUri + "/create/folder");
-				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 10);
+			case NEW_FILE: {
+				String uri = defaultUri + "/create/new/file";
+				HttpPost post = new HttpPost(uri);
+				String fileName = Utilities.inputString("name for your file", ".*", 1, 10);
+				fileName = fileName + ".txt";
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("File location", name));
-				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
+				nameValuePairs.add(new BasicNameValuePair("File name", fileName));
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
-				handleResponse(response);
+				if (handleResponse(response)) {
+					editor("EDIT", "", name, fileName, uri, defaultUri, post, response);
+				}
 				break;
 			}
-//			case READ_FILE: {
-//				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
-//				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
-//				HttpPost post = new HttpPost(uri);
-//				response = client.execute(post);
-//				handleResponse(response);
-//				break;
-//			}
 			case OPEN_FILE: {
-				String fileName = Utilities.inputString("file name (inc. extension)", ".*[.]txt", 1, 100);
+				String fileName = Utilities.inputString("file name", ".*", 1, 100);
+				fileName = fileName + ".txt";
 				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
@@ -159,31 +185,24 @@ public class HTTPClient {
 				} else {
 					System.out.println("Unexpected response status: " + status);
 				}
-				
 
-				TextEditor textEditor = new TextEditor(paragraph, fileName);
-				textEditor.start();
-				while (textEditor.getStatus()) {
-					try {
-						Thread.currentThread();
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+				if (paragraph.contains("<ZOHO--->File not found<---ZOHO>")) {
+					System.out.println("<ZOHO--->File not found<---ZOHO>");
+				} else {
+					editor("DISPLAY", paragraph, name, fileName, uri, defaultUri, post, response);
 				}
-				
-				String edited = textEditor.getEditedParagraph();
-				if(textEditor.getEdit()) {
-					uri = defaultUri + "/create/file/edit";
-					post = new HttpPost(uri);
-					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-					nameValuePairs.add(new BasicNameValuePair("File location", name));
-					nameValuePairs.add(new BasicNameValuePair("File name", fileName));
-					nameValuePairs.add(new BasicNameValuePair("File content", edited));
-					post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-					response = client.execute(post);
-					handleResponse(response);					
-				}
+				break;
+			}
+			case NEW_SUBFOLDER: {
+				String uri = defaultUri + "/create/folder";
+				HttpPost post = new HttpPost(uri);
+				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 10);
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				nameValuePairs.add(new BasicNameValuePair("File location", name));
+				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				handleResponse(response);
 				break;
 			}
 			case CHANGE_DIRECTORY: {
@@ -196,6 +215,14 @@ public class HTTPClient {
 				} else {
 					System.out.println("No such folder");
 				}
+				break;
+			}
+			case DELETE: {
+				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 20);
+				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				handleResponse(response);
 				break;
 			}
 			case GO_BACK_DIRECTORY: {

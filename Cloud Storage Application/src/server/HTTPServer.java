@@ -47,9 +47,9 @@ class AccessHandler implements HttpHandler {
 			InputStream in = ex.getRequestBody();
 			String s = stringBuilder(new BufferedReader(new InputStreamReader(in)));
 			if (create(s, uriPath)) {
-				msg = "success";
+				msg = "Success";
 			} else
-				msg = "not success";
+				msg = "Not success";
 		} else if (uri.getPath().contains("read")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(
@@ -57,7 +57,7 @@ class AccessHandler implements HttpHandler {
 			if (file.exists()) {
 				msg = stringBuilder(new BufferedReader(new FileReader(file)));
 			} else {
-				msg = "File not found";
+				msg = "<ZOHO--->File not found<---ZOHO>";
 			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
@@ -65,8 +65,12 @@ class AccessHandler implements HttpHandler {
 					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
 			if (file.exists()) {
 				msg = "Folder present";
+				if(uri.getPath().contains("delete")) {
+					file.delete();
+					msg = "Delete successful";
+				}
 			} else {
-				msg = "File not found";
+				msg = "<ZOHO--->File not found<---ZOHO>";
 			}
 		} else {
 			String[] userRootAttributes = Utilities.queryToMap(uri.getQuery());
@@ -108,7 +112,6 @@ class AccessHandler implements HttpHandler {
 				file.mkdir();
 				return true;
 			} else {
-				content = fileAttributes[2];
 				file.createNewFile();
 				FileWriter fw = new FileWriter(file);
 				fw.write(content);
