@@ -28,6 +28,48 @@ public class HTTPServer {
 	}
 }
 
+class LoginHandler implements HttpHandler {
+	public void handle(HttpExchange ex) throws IOException {
+		File listFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/clientlist.txt");
+		LoginList loginList = null;
+		if (listFile.exists()) {
+			try {
+				loginList = (LoginList) Utilities.readFile(listFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			loginList = new LoginList();
+		}
+		System.out.println("A client is trying to connect");
+		URI uri = ex.getRequestURI();
+		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
+		String name = userAttributes[0], password = userAttributes[1], userType = userAttributes[2];
+		File file = new File(HTTPServer.defaultLocation + name);
+		String msg = "";
+		if (userType.equals("new")) {
+			if (!file.exists()) {
+				loginList.addEntry(name, password);
+				file.mkdir();
+				try {
+					Utilities.writeFile(listFile, loginList);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				msg = "Root folder created for user " + name;
+			} else {
+				msg = "Username already present";
+			}
+		} else {
+			msg = loginList.checkEntry(name, password);
+		}
+		OutputStream os = ex.getResponseBody();
+		ex.sendResponseHeaders(200, msg.length());
+		os.write(msg.getBytes());
+		os.close();
+	}
+}
+
 class AccessHandler implements HttpHandler {
 	private static String stringBuilder(BufferedReader bin) throws IOException {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -131,47 +173,5 @@ class AccessHandler implements HttpHandler {
 			}
 		}
 		return false;
-	}
-}
-
-class LoginHandler implements HttpHandler {
-	public void handle(HttpExchange ex) throws IOException {
-		File listFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/clientlist.txt");
-		LoginList loginList = null;
-		if (listFile.exists()) {
-			try {
-				loginList = (LoginList) Utilities.readFile(listFile);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			loginList = new LoginList();
-		}
-		System.out.println("A client is trying to connect");
-		URI uri = ex.getRequestURI();
-		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
-		String name = userAttributes[0], password = userAttributes[1], userType = userAttributes[2];
-		File file = new File(HTTPServer.defaultLocation + name);
-		String msg = "";
-		if (userType.equals("new")) {
-			if (!file.exists()) {
-				loginList.addEntry(name, password);
-				file.mkdir();
-				try {
-					Utilities.writeFile(listFile, loginList);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				msg = "Root folder created for user " + name;
-			} else {
-				msg = "Username already present";
-			}
-		} else {
-			msg = loginList.checkEntry(name, password);
-		}
-		OutputStream os = ex.getResponseBody();
-		ex.sendResponseHeaders(200, msg.length());
-		os.write(msg.getBytes());
-		os.close();
 	}
 }

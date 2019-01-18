@@ -56,49 +56,6 @@ public class HTTPClient {
 		}
 	}
 
-	static boolean handleResponse(HttpResponse response) throws UnsupportedOperationException, IOException {
-		int status = response.getStatusLine().getStatusCode();
-		String line = "";
-		if (status >= 200 && status < 300) {
-			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-			while ((line = br.readLine()) != null) {
-				System.out.println(URLDecoder.decode(line, "UTF-8"));
-				if (line.equals("Folder present") || line.equals("Success")) {
-					return true;
-				}
-			}
-		} else {
-			System.out.println("Unexpected response status: " + status);
-		}
-		return false;
-	}
-
-	private static void editor(String mode, String paragraph, String name, String fileName, String uri,
-			String defaultUri, HttpPost post, HttpResponse response) throws ClientProtocolException, IOException {
-		TextEditor textEditor = new TextEditor(mode, paragraph, fileName);
-		textEditor.start();
-		while (textEditor.getStatus()) {
-			try {
-				Thread.currentThread();
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		String edited = textEditor.getEditedParagraph();
-		if (textEditor.isEdited()) {
-			uri = defaultUri + "/create/file/edit";
-			post = new HttpPost(uri);
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-			nameValuePairs.add(new BasicNameValuePair("File location", name));
-			nameValuePairs.add(new BasicNameValuePair("File name", fileName));
-			nameValuePairs.add(new BasicNameValuePair("File content", edited));
-			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			response = client.execute(post);
-			handleResponse(response);
-		}
-	}
-
 	static boolean accessFolder(String name) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
 		List<String> list = new ArrayList<String>();
@@ -232,6 +189,49 @@ public class HTTPClient {
 			}
 		}
 		return true;
+	}
+
+	static boolean handleResponse(HttpResponse response) throws UnsupportedOperationException, IOException {
+		int status = response.getStatusLine().getStatusCode();
+		String line = "";
+		if (status >= 200 && status < 300) {
+			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+			while ((line = br.readLine()) != null) {
+				System.out.println(URLDecoder.decode(line, "UTF-8"));
+				if (line.equals("Folder present") || line.equals("Success")) {
+					return true;
+				}
+			}
+		} else {
+			System.out.println("Unexpected response status: " + status);
+		}
+		return false;
+	}
+
+	private static void editor(String mode, String paragraph, String name, String fileName, String uri,
+			String defaultUri, HttpPost post, HttpResponse response) throws ClientProtocolException, IOException {
+		TextEditor textEditor = new TextEditor(mode, paragraph, fileName);
+		textEditor.start();
+		while (textEditor.getStatus()) {
+			try {
+				Thread.currentThread();
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		String edited = textEditor.getEditedParagraph();
+		if (textEditor.isEdited()) {
+			uri = defaultUri + "/create/file/edit";
+			post = new HttpPost(uri);
+			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+			nameValuePairs.add(new BasicNameValuePair("File location", name));
+			nameValuePairs.add(new BasicNameValuePair("File name", fileName));
+			nameValuePairs.add(new BasicNameValuePair("File content", edited));
+			post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+			response = client.execute(post);
+			handleResponse(response);
+		}
 	}
 
 	public static void main(String[] args) {
