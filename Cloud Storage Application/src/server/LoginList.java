@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class LoginList implements Serializable{
+public class LoginList implements Serializable {
 	public static final long serialVersionUID = 10000L;
 	private Map<String, String> entryList = new LinkedHashMap<String, String>();
 

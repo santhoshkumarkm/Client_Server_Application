@@ -81,25 +81,25 @@ public class Utilities {
 		}
 		return user;
 	}
-	
-	public static Object readFile(File file) throws Exception{
+
+	public static Object readFile(File file) throws Exception {
 		fin = new FileInputStream(file);
 		oin = new ObjectInputStream(fin);
 		Object object = oin.readObject();
-		if(oin != null)
+		if (oin != null)
 			oin.close();
-		if(fin != null)
+		if (fin != null)
 			fin.close();
 		return object;
 	}
 
-	public static void writeFile(File file, Object object) throws Exception{
+	public static void writeFile(File file, Object object) throws Exception {
 		fout = new FileOutputStream(file);
 		oout = new ObjectOutputStream(fout);
 		oout.writeObject(object);
-		if(fout != null)
+		if (fout != null)
 			fout.close();
-		if(oout != null)
+		if (oout != null)
 			oout.close();
 	}
 }

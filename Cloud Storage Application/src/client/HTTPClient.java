@@ -13,7 +13,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -24,7 +23,7 @@ import server.Utilities;
 public class HTTPClient {
 	static CloseableHttpClient client = HttpClients.createDefault();
 	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, NEW_SUBFOLDER = 4, CHANGE_DIRECTORY = 5,
-			GO_BACK_DIRECTORY = 6, DELETE =7, LOG_OUT = 8;
+			GO_BACK_DIRECTORY = 6, DELETE = 7, LOG_OUT = 8;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 15);
@@ -32,10 +31,10 @@ public class HTTPClient {
 		int hashPassword = password.hashCode();
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;
-		HttpGet httpGet = null;
+		HttpPost httpPost = null;
 		try {
-			httpGet = new HttpGet(defaultUri);
-			HttpResponse response = client.execute(httpGet);
+			httpPost = new HttpPost(defaultUri);
+			HttpResponse response = client.execute(httpPost);
 			int status = response.getStatusLine().getStatusCode();
 			if (status >= 200 && status < 300) {
 				BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
@@ -53,7 +52,7 @@ public class HTTPClient {
 			System.err.println("Fatal transport error: " + e.getMessage());
 			e.printStackTrace();
 		} finally {
-			httpGet.releaseConnection();
+			httpPost.releaseConnection();
 		}
 	}
 
@@ -86,7 +85,6 @@ public class HTTPClient {
 				e.printStackTrace();
 			}
 		}
-
 		String edited = textEditor.getEditedParagraph();
 		if (textEditor.isEdited()) {
 			uri = defaultUri + "/create/file/edit";
@@ -108,7 +106,7 @@ public class HTTPClient {
 		list.add("New File");
 		list.add("Open File");
 		list.add("Create New SubFolder");
-		list.add("Change current directory");
+		list.add("Open Folder");
 		list.add("Go back directory");
 		list.add("Delete file/folder");
 		list.add("Logout");
@@ -128,10 +126,10 @@ public class HTTPClient {
 			switch (option) {
 			case UPLOAD_FILE: {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
-//				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 100);
-				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
+				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 1000);
+//				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
 				File file = new File(fileUrl);
-				String fileName = Utilities.inputString("name for your file", ".*", 1, 20) + ".txt";
+				String fileName = Utilities.inputString("name for your file", ".*", 1, 255) + ".txt";
 				StringBuilder stringBuilder = new StringBuilder();
 				if (file.exists()) {
 					BufferedReader bin = new BufferedReader(new FileReader(file));
@@ -156,7 +154,7 @@ public class HTTPClient {
 			case NEW_FILE: {
 				String uri = defaultUri + "/create/new/file";
 				HttpPost post = new HttpPost(uri);
-				String fileName = Utilities.inputString("name for your file", ".*", 1, 10);
+				String fileName = Utilities.inputString("name for your file", ".*", 1, 255);
 				fileName = fileName + ".txt";
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("File location", name));
@@ -164,12 +162,12 @@ public class HTTPClient {
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				if (handleResponse(response)) {
-					editor("EDIT", "", name, fileName, uri, defaultUri, post, response);
+					editor("EDIT_MODE", "", name, fileName, uri, defaultUri, post, response);
 				}
 				break;
 			}
 			case OPEN_FILE: {
-				String fileName = Utilities.inputString("file name", ".*", 1, 100);
+				String fileName = Utilities.inputString("file name", ".*", 1, 255);
 				fileName = fileName + ".txt";
 				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
 				HttpPost post = new HttpPost(uri);
@@ -186,17 +184,17 @@ public class HTTPClient {
 					System.out.println("Unexpected response status: " + status);
 				}
 
-				if (paragraph.contains("<ZOHO--->File not found<---ZOHO>")) {
-					System.out.println("<ZOHO--->File not found<---ZOHO>");
+				if (paragraph.contains("<ERROR--->File not found<---ERROR>")) {
+					System.out.println("File not found");
 				} else {
-					editor("DISPLAY", paragraph, name, fileName, uri, defaultUri, post, response);
+					editor("DISPLAY_MODE", paragraph, name, fileName, uri, defaultUri, post, response);
 				}
 				break;
 			}
 			case NEW_SUBFOLDER: {
 				String uri = defaultUri + "/create/folder";
 				HttpPost post = new HttpPost(uri);
-				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 10);
+				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 255);
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("File location", name));
 				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
@@ -206,7 +204,7 @@ public class HTTPClient {
 				break;
 			}
 			case CHANGE_DIRECTORY: {
-				String folderName = Utilities.inputString("folder name", ".*", 1, 20);
+				String folderName = Utilities.inputString("folder name", ".*", 1, 255);
 				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
@@ -218,7 +216,7 @@ public class HTTPClient {
 				break;
 			}
 			case DELETE: {
-				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 20);
+				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
 				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);

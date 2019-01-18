@@ -47,7 +47,7 @@ public class TextEditor extends Thread {
 		label2 = new JLabel("* EDIT MODE *");
 		label2.setBounds(195, 20, 110, 20);
 		label2.setVisible(false);
-		
+
 		button1 = new JButton("Save and Close");
 		button1.setBounds(195, 420, 110, 20);
 
@@ -59,7 +59,7 @@ public class TextEditor extends Thread {
 		frame.add(button1);
 		frame.add(label2);
 
-		if (mode.equals("DISPLAY")) {
+		if (mode.equals("DISPLAY_MODE")) {
 			edit = false;
 			button2 = new JButton("Edit");
 			button2.setBounds(400, 20, 60, 20);

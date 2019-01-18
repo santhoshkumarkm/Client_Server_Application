@@ -30,12 +30,12 @@ public class HTTPServer {
 
 class AccessHandler implements HttpHandler {
 	private static String stringBuilder(BufferedReader bin) throws IOException {
-		StringBuilder stringBuilderVar = new StringBuilder();
+		StringBuilder stringBuilder = new StringBuilder();
 		String s = "";
 		while ((s = bin.readLine()) != null) {
-			stringBuilderVar.append(s + "\n");
+			stringBuilder.append(s + "\n");
 		}
-		return stringBuilderVar.toString();
+		return stringBuilder.toString();
 	}
 
 	@Override
@@ -48,8 +48,9 @@ class AccessHandler implements HttpHandler {
 			String s = stringBuilder(new BufferedReader(new InputStreamReader(in)));
 			if (create(s, uriPath)) {
 				msg = "Success";
-			} else
+			} else {
 				msg = "Not success";
+			}
 		} else if (uri.getPath().contains("read")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(
@@ -57,7 +58,7 @@ class AccessHandler implements HttpHandler {
 			if (file.exists()) {
 				msg = stringBuilder(new BufferedReader(new FileReader(file)));
 			} else {
-				msg = "<ZOHO--->File not found<---ZOHO>";
+				msg = "<ERROR--->File not found<---ERROR>";
 			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
@@ -65,12 +66,12 @@ class AccessHandler implements HttpHandler {
 					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
 			if (file.exists()) {
 				msg = "Folder present";
-				if(uri.getPath().contains("delete")) {
+				if (uri.getPath().contains("delete")) {
 					file.delete();
 					msg = "Delete successful";
 				}
 			} else {
-				msg = "<ZOHO--->File not found<---ZOHO>";
+				msg = "<ERROR--->File not found<---ERROR>";
 			}
 		} else {
 			String[] userRootAttributes = Utilities.queryToMap(uri.getQuery());
@@ -146,10 +147,10 @@ class LoginHandler implements HttpHandler {
 		} else {
 			loginList = new LoginList();
 		}
-		System.out.println("Client Connected");
+		System.out.println("A client is trying to connect");
 		URI uri = ex.getRequestURI();
 		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
-		String name = userAttributes[0], userType = userAttributes[2], password = userAttributes[1];
+		String name = userAttributes[0], password = userAttributes[1], userType = userAttributes[2];
 		File file = new File(HTTPServer.defaultLocation + name);
 		String msg = "";
 		if (userType.equals("new")) {
@@ -173,5 +174,4 @@ class LoginHandler implements HttpHandler {
 		os.write(msg.getBytes());
 		os.close();
 	}
-
 }
