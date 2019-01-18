@@ -32,7 +32,7 @@ public class HTTPClient {
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;
 		HttpPost httpPost = null;
-		//fdwsdas
+		//fdwsdasnew
 		try {
 			httpPost = new HttpPost(defaultUri);
 			HttpResponse response = client.execute(httpPost);
