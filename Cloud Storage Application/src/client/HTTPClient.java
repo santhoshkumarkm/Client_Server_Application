@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -22,12 +23,12 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client;
-	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, NEW_SUBFOLDER = 4, CHANGE_DIRECTORY = 5,
-			GO_BACK_DIRECTORY = 6, DELETE = 7, LOG_OUT = 8;
+	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, CHANGE_FILE_PRIVILEGE = 4, NEW_SUBFOLDER = 5,
+			CHANGE_DIRECTORY = 6, GO_BACK_DIRECTORY = 7, DELETE = 8, SHARED_FILES = 9, LOG_OUT = 10;
 
 	private static void login(String userState) {
-		String name = Utilities.inputString("username", ".*", 1, 15);
-		String password = Utilities.inputString("password", ".*", 1, 15);
+		String name = Utilities.inputString("username", ".*", 1, 20);
+		String password = Utilities.inputString("password", ".*", 1, 20);
 		int hashPassword = password.hashCode();
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;
@@ -62,10 +63,12 @@ public class HTTPClient {
 		list.add("Upload File");
 		list.add("New File");
 		list.add("Open File");
+		list.add("Change file privilege");
 		list.add("Create New SubFolder");
 		list.add("Open Folder");
 		list.add("Go back directory");
 		list.add("Delete file/folder");
+		list.add("Access shared files");
 		list.add("Logout");
 		boolean flag = false;
 		while (true) {
@@ -148,6 +151,28 @@ public class HTTPClient {
 				}
 				break;
 			}
+			case CHANGE_FILE_PRIVILEGE: {
+				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
+				String uri = "http://localhost:8500/previlege/change"+ "location=" + name + "&subfolder=" + fName;
+				HttpPost post = new HttpPost(uri);
+				Scanner scan = new Scanner(System.in);
+				System.out.println("Enter user names to whom you want to share this file/folder. Enter \"stop\" to end");
+				String userList = "";
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				String sharedUserName;
+				while (scan.hasNext()) {
+					sharedUserName = scan.next();
+					if (sharedUserName.equalsIgnoreCase("stop")) {
+						break;
+					}
+					userList = userList + sharedUserName + "\n";
+					nameValuePairs.add(new BasicNameValuePair("Shared user name", sharedUserName));
+				}
+					post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+					response = client.execute(post);
+					handleResponse(response);
+				break;
+			}
 			case NEW_SUBFOLDER: {
 				String uri = defaultUri + "/create/folder";
 				HttpPost post = new HttpPost(uri);
@@ -182,6 +207,18 @@ public class HTTPClient {
 			}
 			case GO_BACK_DIRECTORY: {
 				return false;
+			}
+			case SHARED_FILES: {
+				String uri = "http://localhost:8500/previlege/shared";
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				handleResponse(response);
+				int fileId = Utilities.inputInt("File id to proceed", 1, Integer.MAX_VALUE);
+				uri = "http://localhost:8500/previlege/shared/use?" + "id=" + fileId;
+				post = new HttpPost(uri);
+				response = client.execute(post);
+				handleResponse(response);
+				break;
 			}
 			case LOG_OUT: {
 				return true;

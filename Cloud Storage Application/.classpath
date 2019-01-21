@@ -13,5 +13,6 @@
 	<classpathentry kind="lib" path="/Users/santhosh-pt2425/Documents/httpcomponents-client-4.5.6/lib/httpmime-4.5.6.jar"/>
 	<classpathentry kind="lib" path="/Users/santhosh-pt2425/Documents/httpcomponents-client-4.5.6/lib/jna-4.4.0.jar"/>
 	<classpathentry kind="lib" path="/Users/santhosh-pt2425/Documents/httpcomponents-client-4.5.6/lib/jna-platform-4.4.0.jar"/>
+	<classpathentry kind="lib" path="/Users/santhosh-pt2425/Documents/mysql-connector-java-5.1.25.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

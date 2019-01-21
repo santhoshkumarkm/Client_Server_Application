@@ -33,6 +33,24 @@ public class Utilities {
 		}
 		return string;
 	}
+	
+	public static int inputInt(String name, int min, int max){
+		int number;
+		while(true){
+			System.out.println("Enter " + name);
+			if(scan.hasNextInt()){
+				number = scan.nextInt();
+				if(number >= min && number <= max)
+					break;
+				else
+					System.out.println(name + " should be between " + min + " and " + max + ".");
+			}else{
+				scan.next();
+				System.out.println("Invalid input.");
+			}
+		}
+		return number;
+	}
 
 	public static int selectOption(List<String> list) {
 		int selectedValue = 0;
