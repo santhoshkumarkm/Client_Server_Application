@@ -23,8 +23,8 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client;
-	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, CHANGE_FILE_PRIVILEGE = 4, NEW_SUBFOLDER = 5,
-			CHANGE_DIRECTORY = 6, GO_BACK_DIRECTORY = 7, DELETE = 8, SHARED_FILES = 9, LOG_OUT = 10;
+	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, SHARE_FILE = 4, NEW_SUBFOLDER = 5,
+			CHANGE_DIRECTORY = 6, GO_BACK_DIRECTORY = 7, DELETE = 8, VIEW_SHARED_FILES = 9, LOG_OUT = 10;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 20);
@@ -43,7 +43,7 @@ public class HTTPClient {
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
 					if (line.contains("Access granted") || line.contains("Root folder created")) {
-						accessFolder(name);
+						accessFolder(name, true, true);
 					}
 				}
 			} else {
@@ -57,19 +57,50 @@ public class HTTPClient {
 		}
 	}
 
-	static boolean accessFolder(String name) throws ClientProtocolException, IOException {
+	private static void openFile(String fileName, String location, boolean editable)
+			throws ClientProtocolException, IOException {
+
+		String uri = "http://localhost:8500/access" + "/read?" + "location=" + location + "&filename=" + fileName;
+		HttpPost post = new HttpPost(uri);
+		HttpResponse response = client.execute(post);
+		int status = response.getStatusLine().getStatusCode();
+		String line = "", paragraph = "";
+
+		if (status >= 200 && status < 300) {
+			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+			while ((line = br.readLine()) != null) {
+				paragraph = paragraph + line + "\n";
+			}
+		} else {
+			System.out.println("Unexpected response status: " + status);
+		}
+
+		if (paragraph.contains("<ERROR--->File not found<---ERROR>")) {
+			System.out.println("File not found");
+		} else {
+			if (editable) {
+				editor("DISPLAY_MODE", paragraph, location, fileName, uri, "http://localhost:8500/access", post,
+						response);
+			} else {
+				editor("READ_ONLY_MODE", paragraph, location, fileName, uri, "http://localhost:8500/access", post,
+						response);
+			}
+		}
+	}
+
+	static boolean accessFolder(String name, boolean owner, boolean write) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
 		List<String> list = new ArrayList<String>();
 		list.add("Upload File");
 		list.add("New File");
 		list.add("Open File");
-		list.add("Change file privilege");
+		list.add("Share file/folder with other users");
 		list.add("Create New SubFolder");
 		list.add("Open Folder");
 		list.add("Go back directory");
 		list.add("Delete file/folder");
 		list.add("Access shared files");
-		list.add("Logout");
+		list.add("Logout/Exit root directory");
 		boolean flag = false;
 		while (true) {
 			if (flag) {
@@ -85,6 +116,10 @@ public class HTTPClient {
 			int option = Utilities.selectOption(list);
 			switch (option) {
 			case UPLOAD_FILE: {
+				if (!write) {
+					System.out.println("Access denied");
+					break;
+				}
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
 				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 1000);
 //				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
@@ -112,6 +147,10 @@ public class HTTPClient {
 				break;
 			}
 			case NEW_FILE: {
+				if (!write) {
+					System.out.println("Access denied");
+					break;
+				}
 				String uri = defaultUri + "/create/new/file";
 				HttpPost post = new HttpPost(uri);
 				String fileName = Utilities.inputString("name for your file", ".*", 1, 255);
@@ -122,58 +161,55 @@ public class HTTPClient {
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				if (handleResponse(response)) {
-					editor("EDIT_MODE", "", name, fileName, uri, defaultUri, post, response);
+					editor("NEW_EDIT_MODE", "", name, fileName, uri, defaultUri, post, response);
 				}
 				break;
 			}
 			case OPEN_FILE: {
 				String fileName = Utilities.inputString("file name", ".*", 1, 255);
 				fileName = fileName + ".txt";
-				String uri = defaultUri + "/read?" + "location=" + name + "&filename=" + fileName;
-				HttpPost post = new HttpPost(uri);
-				response = client.execute(post);
-				int status = response.getStatusLine().getStatusCode();
-				String line = "", paragraph = "";
-
-				if (status >= 200 && status < 300) {
-					BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-					while ((line = br.readLine()) != null) {
-						paragraph = paragraph + line + "\n";
-					}
+				if (!write) {
+					openFile(fileName, name, false);
 				} else {
-					System.out.println("Unexpected response status: " + status);
-				}
-
-				if (paragraph.contains("<ERROR--->File not found<---ERROR>")) {
-					System.out.println("File not found");
-				} else {
-					editor("DISPLAY_MODE", paragraph, name, fileName, uri, defaultUri, post, response);
+					openFile(fileName, name, true);
 				}
 				break;
 			}
-			case CHANGE_FILE_PRIVILEGE: {
+			case SHARE_FILE: {
+				if (!owner) {
+					System.out.println("Access denied");
+					break;
+				}
 				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
-				String uri = "http://localhost:8500/previlege/change"+ "location=" + name + "&subfolder=" + fName;
+				String uri = "http://localhost:8500/previlege/change?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
+				@SuppressWarnings("resource")
 				Scanner scan = new Scanner(System.in);
-				System.out.println("Enter user names to whom you want to share this file/folder. Enter \"stop\" to end");
+				System.out
+						.println("Enter user names to whom you want to share this file/folder\nEnter \"stop\" to end");
 				String userList = "";
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-				String sharedUserName;
-				while (scan.hasNext()) {
+				String sharedUserName, privilege;
+				while (true) {
+					System.out.println("Enter username...");
 					sharedUserName = scan.next();
 					if (sharedUserName.equalsIgnoreCase("stop")) {
 						break;
 					}
+					privilege = Utilities.inputString("privilage (\"read\" or \"write\")...", "(read|write)", 4, 5);
 					userList = userList + sharedUserName + "\n";
-					nameValuePairs.add(new BasicNameValuePair("Shared user name", sharedUserName));
+					nameValuePairs.add(new BasicNameValuePair(sharedUserName, privilege));
 				}
-					post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-					response = client.execute(post);
-					handleResponse(response);
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				handleResponse(response);
 				break;
 			}
 			case NEW_SUBFOLDER: {
+				if (!write) {
+					System.out.println("Access denied");
+					break;
+				}
 				String uri = defaultUri + "/create/folder";
 				HttpPost post = new HttpPost(uri);
 				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 255);
@@ -191,13 +227,17 @@ public class HTTPClient {
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
 				if (handleResponse(response)) {
-					flag = accessFolder(name + "/" + folderName);
+					flag = accessFolder(name + "/" + folderName, owner, write);
 				} else {
 					System.out.println("No such folder");
 				}
 				break;
 			}
 			case DELETE: {
+				if (!write) {
+					System.out.println("Access denied");
+					break;
+				}
 				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
 				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
@@ -208,16 +248,48 @@ public class HTTPClient {
 			case GO_BACK_DIRECTORY: {
 				return false;
 			}
-			case SHARED_FILES: {
-				String uri = "http://localhost:8500/previlege/shared";
+			case VIEW_SHARED_FILES: {
+				if (!owner) {
+					System.out.println("Access denied");
+					break;
+				}
+				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
+				String uri = "http://localhost:8500/previlege/shared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
-				handleResponse(response);
-				int fileId = Utilities.inputInt("File id to proceed", 1, Integer.MAX_VALUE);
-				uri = "http://localhost:8500/previlege/shared/use?" + "id=" + fileId;
+				String records = handleResponseString(response);
+				System.out.println("-----------------------------------------------------------");
+				if (records.contains("No files available")) {
+					break;
+				}
+				int fileId = Utilities.inputInt("File id to proceed", 1, 20);
+				uri = "http://localhost:8500/previlege/shared/check?" + "name=" + userName + "&id=" + fileId;
 				post = new HttpPost(uri);
 				response = client.execute(post);
-				handleResponse(response);
+				String writable = handleResponseString(response), location = "";
+				if (!writable.contains("Access denied")) {
+					location = writable.substring(writable.indexOf(':') + 1, writable.length());
+
+					if (writable.contains("Write") && location.contains(".txt")) {
+						System.out.println("Accessing shared file...");
+						String fileName = location.substring(location.lastIndexOf('/') + 1, location.length());
+						openFile(fileName, location.substring(0, location.lastIndexOf('/')), true);
+
+					} else if (writable.contains("Read") && location.contains(".txt")) {
+						System.out.println("Accessing shared file...");
+						String fileName = location.substring(location.lastIndexOf('/') + 1, location.length());
+						openFile(fileName, location.substring(0, location.lastIndexOf('/')), false);
+
+					} else if (writable.contains("Write") && !location.contains(".txt")) {
+						System.out.println("Accessing shared folder...");
+						accessFolder(location, false, true);
+
+					} else if (writable.contains("Read") && !location.contains(".txt")) {
+						System.out.println("Accessing shared folder...");
+						accessFolder(location, false, false);
+					}
+				}
+
 				break;
 			}
 			case LOG_OUT: {
@@ -228,6 +300,25 @@ public class HTTPClient {
 		return true;
 	}
 
+	static String handleResponseString(HttpResponse response) throws UnsupportedOperationException, IOException {
+		int status = response.getStatusLine().getStatusCode();
+		String line = "", returnLine = "";
+		if (status >= 200 && status < 300) {
+			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+			int count = 0;
+			while ((line = br.readLine()) != null) {
+				System.out.println(URLDecoder.decode(line, "UTF-8"));
+				if (count == 0) {
+					returnLine = URLDecoder.decode(line, "UTF-8");
+				}
+			}
+			br.close();
+		} else {
+			System.out.println("Unexpected response status: " + status);
+		}
+		return returnLine;
+	}
+
 	static boolean handleResponse(HttpResponse response) throws UnsupportedOperationException, IOException {
 		int status = response.getStatusLine().getStatusCode();
 		String line = "";
@@ -235,10 +326,12 @@ public class HTTPClient {
 			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 			while ((line = br.readLine()) != null) {
 				System.out.println(URLDecoder.decode(line, "UTF-8"));
-				if (line.equals("Folder present") || line.equals("Success")) {
+				if (line.equals("Folder present") || line.equals("Success") || line.equals("Write enabled")) {
+					br.close();
 					return true;
 				}
 			}
+			br.close();
 		} else {
 			System.out.println("Unexpected response status: " + status);
 		}

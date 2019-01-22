@@ -73,6 +73,9 @@ public class TextEditor extends Thread {
 				}
 			});
 			textArea.setEditable(false);
+		} else if (mode.equals("READ_ONLY_MODE")) {
+			button1.setVisible(false);
+			textArea.setEditable(false);
 		}
 
 		button1.addActionListener(new ActionListener() {

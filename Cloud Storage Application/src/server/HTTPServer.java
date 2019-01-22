@@ -10,12 +10,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -79,6 +82,7 @@ public class HTTPServer {
 
 class LoginHandler implements HttpHandler {
 	public void handle(HttpExchange ex) throws IOException {
+		System.out.println("A client is trying to connect");
 		URI uri = ex.getRequestURI();
 		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
 		String name = userAttributes[0], password = userAttributes[1], userType = userAttributes[2],
@@ -143,14 +147,6 @@ class LoginHandler implements HttpHandler {
 }
 
 class AccessHandler implements HttpHandler {
-	private static String stringBuilder(BufferedReader bin) throws IOException {
-		StringBuilder stringBuilder = new StringBuilder();
-		String s = "";
-		while ((s = bin.readLine()) != null) {
-			stringBuilder.append(s + "\n");
-		}
-		return stringBuilder.toString();
-	}
 
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
@@ -159,7 +155,7 @@ class AccessHandler implements HttpHandler {
 		String msg = "";
 		if (uri.getPath().contains("create")) {
 			InputStream in = ex.getRequestBody();
-			String s = stringBuilder(new BufferedReader(new InputStreamReader(in)));
+			String s = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
 			if (create(s, uriPath)) {
 				msg = "Success";
 			} else {
@@ -170,7 +166,7 @@ class AccessHandler implements HttpHandler {
 			File file = new File(
 					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
 			if (file.exists()) {
-				msg = stringBuilder(new BufferedReader(new FileReader(file)));
+				msg = Utilities.stringBuilder(new BufferedReader(new FileReader(file)));
 			} else {
 				msg = "<ERROR--->File not found<---ERROR>";
 			}
@@ -249,11 +245,13 @@ class AccessHandler implements HttpHandler {
 }
 
 class PrevilegeHandler implements HttpHandler {
+	
 	public void handle(HttpExchange ex) throws IOException {
 		Connection con = null;
 		URI uri = ex.getRequestURI();
 		String uriPath = uri.getPath();
 		String msg = "";
+		ResultSet rs = null;
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/online_file_storage", "root", null);
@@ -262,43 +260,120 @@ class PrevilegeHandler implements HttpHandler {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		if (uriPath.contains("new")) {
+		if (uriPath.contains("change")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			String location = readFileAttributes[0] + "/" + readFileAttributes[1], isWrite = readFileAttributes[2],
-					userName = location.substring(0,location.indexOf('/'));
+			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
+
+			InputStream in = ex.getRequestBody();
+			String userDetail = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
+
+			Map<String, String> result = new LinkedHashMap<String, String>();
+			for (String param : userDetail.split("&")) {
+				String pair[] = param.split("=");
+				if (pair.length > 1) {
+					result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
+				} else {
+					result.put(URLDecoder.decode(pair[0], "UTF-8"), "");
+				}
+			}
+
 			try {
-//				Statement stmt = con.createStatement();
-//				ResultSet rs = stmt.executeQuery("select id from clients_info where name = " + userName);
-//				while (rs.next()) {
-//					userId = rs.getInt(1);
-//				}
-				PreparedStatement stmt2 = con.prepareStatement("insert into shared_files_info values(null,?,?)");
-				stmt2.setString(1, location);
-				stmt2.setString(2, isWrite);
-				stmt2.executeUpdate();
+				PreparedStatement stmt = con.prepareStatement("insert ignore into shared_files_info values(null,?)",
+						Statement.RETURN_GENERATED_KEYS);
+				stmt.setString(1, location);
+				stmt.executeUpdate();
+				ResultSet generatedKeys = stmt.getGeneratedKeys();
+				long primaryKeyValue = 0;
+				if (generatedKeys.next()) {
+					primaryKeyValue = generatedKeys.getLong(1);
+				} else {
+					Statement stmt3 = con.createStatement();
+					String qq = "select id from shared_files_info where filelocation='" + location + "'";
+					ResultSet rs1 = stmt3.executeQuery(qq);
+					if (rs1.next()) {
+						primaryKeyValue = rs1.getLong(1);
+					}
+				}
+				
+				
+//					int userId;
+				for (Map.Entry<String, String> entry : result.entrySet()) {
+					PreparedStatement stmt2 = con.prepareStatement("insert into shared_users_info values(?,?,?)");
+//					Statement stmt4 = con.createStatement();
+//					ResultSet rs2 = stmt4.executeQuery("select id from clients_info where name = '" + entry.getKey()+"'");
+//					if (rs2.next()) {
+//						userId = rs2.getInt(1);
+//					}
+//					stmt2.setInt(2, userId);
+					stmt2.setInt(1, (int) primaryKeyValue);
+					stmt2.setString(2, entry.getKey());
+					stmt2.setString(3, entry.getValue());
+					stmt2.executeUpdate();
+				}
 				msg = "Success";
 				con.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-		} else if (uriPath.contains("shared")) {
-			Statement stmt;
+		} else if (uriPath.contains("check")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			String userName = readFileAttributes[0];
+			int fileId = Integer.valueOf(readFileAttributes[1]);
 			try {
-				stmt = con.createStatement();
-				ResultSet rs = stmt.executeQuery("select * from shared_files_info");
+				Statement stmt = con.createStatement();
+				rs = stmt.executeQuery(
+						"select f.id, f.filelocation, u.username, u.privilege from shared_files_info f inner join shared_users_info u on f.id = u.id where u.username ='"
+								+ userName + "'");
+				while (rs.next()) {
+					if (rs.getInt(1) == fileId) {
+						if (rs.getString(3).equals(userName)) {
+							if (rs.getString(4).equals("write")) {
+								msg = "Write enabled:" + rs.getString(2);
+								break;
+							} else {
+								msg = "Read only:" + rs.getString(2);
+								break;
+							}
+						} else {
+							msg = "Access denied";
+						}
+					} else {
+						msg = "Access denied";
+					}
+				}
+				rs.beforeFirst();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		} else if (uriPath.contains("shared")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			String userName = readFileAttributes[0];
+			try {
+				Statement stmt = con.createStatement();
+				rs = stmt.executeQuery(
+						"select f.id, f.filelocation, u.username, u.privilege from shared_files_info f inner join shared_users_info u on f.id = u.id where u.username ='"
+								+ userName + "'");
 				String location = "";
+				String temp;
 				while (rs.next()) {
 					location = rs.getString(2);
-					msg = "File Id: " + rs.getInt(1) + "\tFile name"+ location.substring(location.lastIndexOf('/')+1,location.length()) + "\tOwner: " + location.substring(0,location.indexOf('/'));
-					msg = msg + "\n";
+					temp = "File Id: " + rs.getInt(1) + " | " + "File name: \""
+							+ location.substring(location.lastIndexOf('/') + 1, location.length()) + "\" | " + "Owner: "
+							+ location.substring(0, location.indexOf('/'));
+					msg += temp + "\n";
+				}
+				rs.beforeFirst();
+				if (location.equals("")) {
+					msg = "No files available";
 				}
 				msg = "Public Files...\n" + msg;
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-		} else if (uriPath.contains("use")) {
-			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-//			String  = readFileAttributes[0];
 		}
+		OutputStream os = ex.getResponseBody();
+		ex.sendResponseHeaders(200, msg.length());
+		os.write(msg.getBytes());
+		os.close();
 	}
 }

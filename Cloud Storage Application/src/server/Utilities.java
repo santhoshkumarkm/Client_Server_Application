@@ -1,8 +1,10 @@
 package server;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -33,18 +35,18 @@ public class Utilities {
 		}
 		return string;
 	}
-	
-	public static int inputInt(String name, int min, int max){
+
+	public static int inputInt(String name, int min, int max) {
 		int number;
-		while(true){
+		while (true) {
 			System.out.println("Enter " + name);
-			if(scan.hasNextInt()){
+			if (scan.hasNextInt()) {
 				number = scan.nextInt();
-				if(number >= min && number <= max)
+				if (number >= min && number <= max)
 					break;
 				else
 					System.out.println(name + " should be between " + min + " and " + max + ".");
-			}else{
+			} else {
 				scan.next();
 				System.out.println("Invalid input.");
 			}
@@ -119,5 +121,14 @@ public class Utilities {
 			fout.close();
 		if (oout != null)
 			oout.close();
+	}
+
+	public static String stringBuilder(BufferedReader bin) throws IOException {
+		StringBuilder stringBuilder = new StringBuilder();
+		String s = "";
+		while ((s = bin.readLine()) != null) {
+			stringBuilder.append(s + "\n");
+		}
+		return stringBuilder.toString();
 	}
 }
