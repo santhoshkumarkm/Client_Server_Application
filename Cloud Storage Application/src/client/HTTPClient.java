@@ -90,6 +90,12 @@ public class HTTPClient {
 
 	static boolean accessFolder(String name, boolean owner, boolean write) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
+		String finalOption;
+		if(owner) {
+			finalOption = "Logout";
+		} else {
+			finalOption = "Exit accessed folder";
+		}
 		List<String> list = new ArrayList<String>();
 		list.add("Upload File");
 		list.add("New File");
@@ -100,7 +106,7 @@ public class HTTPClient {
 		list.add("Go back directory");
 		list.add("Delete file/folder");
 		list.add("Access shared files");
-		list.add("Logout/Exit root directory");
+		list.add(finalOption);
 		boolean flag = false;
 		while (true) {
 			if (flag) {
