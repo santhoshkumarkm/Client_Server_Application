@@ -35,7 +35,7 @@ public class HTTPServer {
 class LoginHandler implements HttpHandler {
 	ClientInfoDao dao = new ClientInfoDao();
 
-	public void handle(HttpExchange ex) throws IOException{
+	public void handle(HttpExchange ex) throws IOException {
 		URI uri = ex.getRequestURI();
 		String[] userAttributes = Utilities.queryToMap(uri.getQuery());
 		String name = userAttributes[0], password = userAttributes[1], userType = userAttributes[2],
@@ -175,10 +175,10 @@ class PrevilegeHandler implements HttpHandler {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
 			File file = new File(HTTPServer.defaultLocation + "/" + location);
-			if(file.exists()) {				
+			if (file.exists()) {
 				InputStream in = ex.getRequestBody();
 				String userDetail = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
-				
+
 				Map<String, String> result = new LinkedHashMap<String, String>();
 				for (String param : userDetail.split("&")) {
 					String pair[] = param.split("=");
@@ -196,6 +196,10 @@ class PrevilegeHandler implements HttpHandler {
 			} else {
 				msg = "<ERROR--->File not found<---ERROR>";
 			}
+		} else if (uriPath.contains("myshared")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			String userName = readFileAttributes[0];
+			msg = dao.getSharedFilesByAnUser(userName);
 		} else if (uriPath.contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			String userName = readFileAttributes[0];

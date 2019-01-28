@@ -125,7 +125,7 @@ public class ClientInfoDao {
 	public String insertSharedUsers(int fileId, String name, String privilege) {
 		PreparedStatement stmt = null;
 		try {
-			stmt = con.prepareStatement("insert into shared_users_info values(?,?,?)");
+			stmt = con.prepareStatement("insert ignore into shared_users_info values(?,?,?)");
 			int userId = getUserId(name);
 			if (userId == 0)
 				return "Error found";
@@ -225,7 +225,7 @@ public class ClientInfoDao {
 				temp = "File Id: " + rs.getInt(1) + " | " + "File name: \""
 						+ location.substring(location.lastIndexOf('/') + 1, location.length()) + "\" | " + "Owner: "
 						+ location.substring(0, location.indexOf('/')) + " | " + "Access Type: " + rs.getString(4);
-				msg += temp + "\n";
+				msg += "\n" + temp;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -244,7 +244,44 @@ public class ClientInfoDao {
 		if (location.equals("")) {
 			msg = "No files available";
 		}
-		return "Public Files...\n" + msg;
+		return "Public Files..." + msg;
+	}
+
+	public String getSharedFilesByAnUser(String userName) {
+		Statement stmt = null;
+		String location = "";
+		String temp, msg = "";
+		ResultSet rs = null;
+		try {
+			stmt = con.createStatement();
+			rs = stmt.executeQuery(
+					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join shared_files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where f.filelocation like '"
+							+ userName + "%'");
+			while (rs.next()) {
+				location = rs.getString(2);
+				temp = "File Id: " + rs.getInt(1) + " | " + "File name: \""
+						+ location.substring(location.lastIndexOf('/') + 1, location.length()) + "\" | " + "Shared to: "
+						+ rs.getString(3) + " | " + "Access Type: " + rs.getString(4);
+				msg += "\n" + temp;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null)
+					stmt.close();
+			} catch (Exception e) {
+			}
+			try {
+				if (rs != null)
+					rs.close();
+			} catch (Exception e) {
+			}
+		}
+		if (location.equals("")) {
+			msg = "No files available";
+		}
+		return "Public Files..." + msg;
 	}
 
 	public String closeConnection() {
