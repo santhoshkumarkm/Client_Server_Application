@@ -44,6 +44,21 @@ public class HTTPClient {
 					System.out.println(line);
 					if (line.contains("Access granted") || line.contains("Root folder created")) {
 						accessFolder(name, true, true);
+						userState = "logout";
+						defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
+								+ userState;
+						HttpPost httpPost2 = new HttpPost(defaultUri);
+						response = client.execute(httpPost2);
+						status = response.getStatusLine().getStatusCode();
+						if (status >= 200 && status < 300) {
+							BufferedReader br2 = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+							line = "";
+							while ((line = br2.readLine()) != null) {
+								System.out.println(line);
+							}
+						} else {
+							System.out.println("Logout unsuccessful");
+						}
 					}
 				}
 			} else {
@@ -187,7 +202,7 @@ public class HTTPClient {
 					break;
 				}
 				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
-				String uri = "http://localhost:8500/previlege/change?" + "location=" + name + "&subfolder=" + fName;
+				String uri = "http://localhost:8500/previlege/sharefile?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
 				@SuppressWarnings("resource")
 				Scanner scan = new Scanner(System.in);
