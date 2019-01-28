@@ -123,6 +123,7 @@ public class HTTPClient {
 		list.add("Open Folder");
 		if (owner) {
 			list.add("Share file/folder with other users");
+			list.add("Remove Share access");
 			list.add("Access shared files by other users");
 			list.add("View files & folders I have shared");
 		}
@@ -206,7 +207,6 @@ public class HTTPClient {
 				Scanner scan = new Scanner(System.in);
 				System.out
 						.println("Enter user names to whom you want to share this file/folder\nEnter \"stop\" to end");
-				String userList = "";
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				String sharedUserName, privilege;
 				while (true) {
@@ -216,13 +216,34 @@ public class HTTPClient {
 						break;
 					}
 					privilege = Utilities.inputString("privilage (\"read\" or \"write\")...", "(read|write)", 4, 5);
-					userList = userList + sharedUserName + "\n";
 					nameValuePairs.add(new BasicNameValuePair(sharedUserName, privilege));
 				}
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				handleResponse(response);
 //				break;
+			}
+			if (owner && option == 8) {
+				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
+				String uri = "http://localhost:8500/previlege/removesharedfile?" + "location=" + name + "&subfolder="
+						+ fName;
+				HttpPost post = new HttpPost(uri);
+				@SuppressWarnings("resource")
+				Scanner scan = new Scanner(System.in);
+				System.out.println("Enter user names\nEnter \"stop\" to end");
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				String sharedUserName;
+				while (true) {
+					System.out.println("Enter username...");
+					sharedUserName = scan.next();
+					if (sharedUserName.equalsIgnoreCase("stop")) {
+						break;
+					}
+					nameValuePairs.add(new BasicNameValuePair(sharedUserName, "remove"));
+				}
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				handleResponse(response);
 			}
 //			case NEW_SUBFOLDER: {
 			if (write && option == 3) {
@@ -260,11 +281,11 @@ public class HTTPClient {
 //				break;
 			}
 //			case GO_BACK_DIRECTORY: {
-			if ((owner && option == 10) || (!owner && write && option == 7) || (!write && option == 3)) {
+			if ((owner && option == 11) || (!owner && write && option == 7) || (!write && option == 3)) {
 				return false;
 			}
 //			case VIEW_SHARED_FILES: {
-			while (owner && option == 8) {
+			while (owner && option == 9) {
 				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
 				String uri = "http://localhost:8500/previlege/shared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
@@ -304,7 +325,8 @@ public class HTTPClient {
 
 				break;
 			}
-			if (owner && option == 9) {
+//			case MY_SHARED: {
+			if (owner && option == 10) {
 				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
 				String uri = "http://localhost:8500/previlege/myshared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
@@ -312,7 +334,7 @@ public class HTTPClient {
 				handleResponseString(response);
 			}
 //			case LOG_OUT: {
-			if ((owner && option == 11) || (!owner && write && option == 8) || (!write && option == 4)) {
+			if ((owner && option == 12) || (!owner && write && option == 8) || (!write && option == 4)) {
 				return true;
 			}
 //			}

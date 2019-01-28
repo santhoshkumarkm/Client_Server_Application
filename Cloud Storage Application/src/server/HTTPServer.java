@@ -196,6 +196,31 @@ class PrevilegeHandler implements HttpHandler {
 			} else {
 				msg = "<ERROR--->File not found<---ERROR>";
 			}
+		} else if (uriPath.contains("removesharedfile")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
+			File file = new File(HTTPServer.defaultLocation + "/" + location);
+			if (file.exists()) {
+				InputStream in = ex.getRequestBody();
+				String userDetail = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
+
+				Map<String, String> result = new LinkedHashMap<String, String>();
+				for (String param : userDetail.split("&")) {
+					String pair[] = param.split("=");
+					if (pair.length > 1) {
+						result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
+					} else {
+						result.put(URLDecoder.decode(pair[0], "UTF-8"), "");
+					}
+				}
+				int primaryKeyValue = 0;
+				primaryKeyValue = (int) dao.insertSharedFile(location);
+				for (Map.Entry<String, String> entry : result.entrySet()) {
+					msg = dao.removeSharedUsers(primaryKeyValue, entry.getKey());
+				}
+			} else {
+				msg = "<ERROR--->File not found<---ERROR>";
+			}
 		} else if (uriPath.contains("myshared")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			String userName = readFileAttributes[0];

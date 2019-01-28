@@ -147,6 +147,30 @@ public class ClientInfoDao {
 		return "Success";
 	}
 
+	public String removeSharedUsers(int fileId, String name) {
+		PreparedStatement stmt = null;
+		try {
+			stmt = con.prepareStatement("delete from shared_users_info where file_id = ? and user_id = ?");
+			int userId = getUserId(name);
+			if (userId == 0)
+				return "Error found";
+			else {
+				stmt.setInt(1, fileId);
+				stmt.setInt(2, userId);
+				stmt.executeUpdate();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null)
+					stmt.close();
+			} catch (Exception e) {
+			}
+		}
+		return "Success";
+	}
+
 	private int getUserId(String name) {
 		Statement stmt = null;
 		ResultSet rs = null;
