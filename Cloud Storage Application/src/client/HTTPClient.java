@@ -141,7 +141,7 @@ public class HTTPClient {
 
 			int option = Utilities.selectOption(list);
 //			case UPLOAD_FILE: {
-			while (write && option == 1) {
+			if (write && option == 1) {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
 				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 1000);
 //				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
@@ -157,7 +157,7 @@ public class HTTPClient {
 					bin.close();
 				} else {
 					System.out.println("File not exists");
-					break;
+					continue;
 				}
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("File location", name));
@@ -166,10 +166,9 @@ public class HTTPClient {
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				handleResponse(response);
-				break;
 			}
 //			case NEW_FILE: {
-			if (write && option == 2) {
+			else if (write && option == 2) {
 				String uri = defaultUri + "/create/new/file";
 				HttpPost post = new HttpPost(uri);
 				String fileName = Utilities.inputString("name for your file", ".*", 1, 255);
@@ -184,7 +183,7 @@ public class HTTPClient {
 				}
 			}
 //			case NEW_SUBFOLDER: {
-			if (write && option == 3) {
+			else if (write && option == 3) {
 				String uri = defaultUri + "/create/folder";
 				HttpPost post = new HttpPost(uri);
 				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 255);
@@ -196,7 +195,7 @@ public class HTTPClient {
 				handleResponse(response);
 			}
 //			case DELETE: {
-			if (write && option == 4) {
+			else if (write && option == 4) {
 				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
 				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
@@ -204,7 +203,7 @@ public class HTTPClient {
 				handleResponse(response);
 			}
 //			case OPEN_FILE: {
-			if ((write && option == 5) || (!write && option == 1)) {
+			else if ((write && option == 5) || (!write && option == 1)) {
 				String fileName = Utilities.inputString("file name", ".*", 1, 255);
 				fileName = fileName + ".txt";
 				if (!write) {
@@ -214,7 +213,7 @@ public class HTTPClient {
 				}
 			}
 //			case CHANGE_DIRECTORY: {
-			if ((write && option == 6) || (!write && option == 2)) {
+			else if ((write && option == 6) || (!write && option == 2)) {
 				String folderName = Utilities.inputString("folder name", ".*", 1, 255);
 				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
 				HttpPost post = new HttpPost(uri);
@@ -226,7 +225,7 @@ public class HTTPClient {
 				}
 			}
 //			case SHARE_FILE: {
-			if (owner && option == 7) {
+			else if (owner && option == 7) {
 				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
 				String uri = "http://localhost:8500/previlege/sharefile?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
@@ -250,7 +249,7 @@ public class HTTPClient {
 				handleResponse(response);
 			}
 //			case VIEW_SHARED_FILES: {
-			while (owner && option == 8) {
+			else if (owner && option == 8) {
 				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
 				String uri = "http://localhost:8500/previlege/shared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
@@ -258,7 +257,7 @@ public class HTTPClient {
 				String records = handleResponseString(response);
 				System.out.println("-----------------------------------------------------------");
 				if (records.contains("No files available")) {
-					break;
+					continue;
 				}
 				int fileId = Utilities.inputInt("file id to proceed", 1, 20);
 				uri = "http://localhost:8500/previlege/shared/check?" + "name=" + userName + "&id=" + fileId;
@@ -287,10 +286,9 @@ public class HTTPClient {
 						accessFolder(location, false, false);
 					}
 				}
-				break;
 			}
 //			case MY_SHARED: {
-			if ((owner && option == 9) || (owner && option == 10)) {
+			else if ((owner && option == 9) || (owner && option == 10)) {
 				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
 				String uri = "http://localhost:8500/previlege/myshared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
@@ -301,9 +299,8 @@ public class HTTPClient {
 			}
 //			case REMOVE_SHARED: {
 			if (owner && option == 10) {
-				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
-				String uri = "http://localhost:8500/previlege/removesharedfile?" + "location=" + name + "&subfolder="
-						+ fName;
+				String fileId = Utilities.inputString("file id", ".*", 1, 260);
+				String uri = "http://localhost:8500/previlege/removesharedfile?" + "&id=" + fileId;
 				HttpPost post = new HttpPost(uri);
 				@SuppressWarnings("resource")
 				Scanner scan = new Scanner(System.in);
@@ -323,14 +320,13 @@ public class HTTPClient {
 				handleResponse(response);
 			}
 //			case GO_BACK_DIRECTORY: {
-			if ((owner && option == 11) || (!owner && write && option == 7) || (!write && option == 3)) {
+			else if ((owner && option == 11) || (!owner && write && option == 7) || (!write && option == 3)) {
 				return false;
 			}
 //			case LOG_OUT: {
-			if ((owner && option == 12) || (!owner && write && option == 8) || (!write && option == 4)) {
+			else if ((owner && option == 12) || (!owner && write && option == 8) || (!write && option == 4)) {
 				return true;
 			}
-//			}
 		}
 		return true;
 	}
@@ -345,6 +341,7 @@ public class HTTPClient {
 				System.out.println(URLDecoder.decode(line, "UTF-8"));
 				if (count == 0) {
 					returnLine = URLDecoder.decode(line, "UTF-8");
+					count++;
 				}
 			}
 			br.close();

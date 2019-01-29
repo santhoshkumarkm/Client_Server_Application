@@ -23,6 +23,9 @@ public class Utilities {
 
 	public static String inputString(String name, String match, int minLength, int maxLength) {
 		String string;
+		if(name.contains("privilage")) {
+			System.out.println("hi");
+		}
 		while (true) {
 			System.out.println("Enter " + name);
 			if (scan.hasNext()) {

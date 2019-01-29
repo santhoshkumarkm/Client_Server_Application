@@ -144,7 +144,7 @@ public class ClientInfoDao {
 			} catch (Exception e) {
 			}
 		}
-		return "Success";
+		return "Successfully shared";
 	}
 
 	public String removeSharedUsers(int fileId, String name) {
@@ -158,7 +158,7 @@ public class ClientInfoDao {
 				stmt.setInt(1, fileId);
 				stmt.setInt(2, userId);
 				if (stmt.executeUpdate() == 0) {
-					return "Error found";
+					return "An error has occured";
 				}
 			}
 		} catch (SQLException e) {
@@ -170,7 +170,7 @@ public class ClientInfoDao {
 			} catch (Exception e) {
 			}
 		}
-		return "Share access removed from a client";
+		return "Share access removed";
 	}
 
 	private int getUserId(String name) {
@@ -288,7 +288,7 @@ public class ClientInfoDao {
 				temp = "File Id: " + rs.getInt(1) + " | " + "File name: \""
 						+ location.substring(location.lastIndexOf('/') + 1, location.length()) + "\" | " + "Shared to: "
 						+ rs.getString(3) + " | " + "Access Type: " + rs.getString(4);
-				msg += ("\n" + temp);
+				msg = msg + "\n" + temp;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
