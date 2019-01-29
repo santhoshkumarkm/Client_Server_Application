@@ -191,7 +191,7 @@ class PrevilegeHandler implements HttpHandler {
 				int primaryKeyValue = 0;
 				primaryKeyValue = (int) dao.insertSharedFile(location);
 				for (Map.Entry<String, String> entry : result.entrySet()) {
-					msg = dao.insertSharedUsers(primaryKeyValue, entry.getKey(), entry.getValue());
+					msg += '\n' + dao.insertSharedUsers(primaryKeyValue, entry.getKey(), entry.getValue());
 				}
 			} else {
 				msg = "<ERROR--->File not found<---ERROR>";
@@ -216,7 +216,7 @@ class PrevilegeHandler implements HttpHandler {
 				int primaryKeyValue = 0;
 				primaryKeyValue = (int) dao.insertSharedFile(location);
 				for (Map.Entry<String, String> entry : result.entrySet()) {
-					msg = dao.removeSharedUsers(primaryKeyValue, entry.getKey());
+					msg += "\n" + dao.removeSharedUsers(primaryKeyValue, entry.getKey());
 				}
 			} else {
 				msg = "<ERROR--->File not found<---ERROR>";

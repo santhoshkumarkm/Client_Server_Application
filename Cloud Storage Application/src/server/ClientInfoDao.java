@@ -128,7 +128,7 @@ public class ClientInfoDao {
 			stmt = con.prepareStatement("insert ignore into shared_users_info values(?,?,?)");
 			int userId = getUserId(name);
 			if (userId == 0)
-				return "Error found";
+				return "User not found";
 			else {
 				stmt.setInt(2, userId);
 				stmt.setInt(1, fileId);
@@ -153,11 +153,13 @@ public class ClientInfoDao {
 			stmt = con.prepareStatement("delete from shared_users_info where file_id = ? and user_id = ?");
 			int userId = getUserId(name);
 			if (userId == 0)
-				return "Error found";
+				return "User not found";
 			else {
 				stmt.setInt(1, fileId);
 				stmt.setInt(2, userId);
-				stmt.executeUpdate();
+				if (stmt.executeUpdate() == 0) {
+					return "Error found";
+				}
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -168,7 +170,7 @@ public class ClientInfoDao {
 			} catch (Exception e) {
 			}
 		}
-		return "Success";
+		return "Share access removed from a client";
 	}
 
 	private int getUserId(String name) {
@@ -286,7 +288,7 @@ public class ClientInfoDao {
 				temp = "File Id: " + rs.getInt(1) + " | " + "File name: \""
 						+ location.substring(location.lastIndexOf('/') + 1, location.length()) + "\" | " + "Shared to: "
 						+ rs.getString(3) + " | " + "Access Type: " + rs.getString(4);
-				msg += "\n" + temp;
+				msg += ("\n" + temp);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

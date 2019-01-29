@@ -23,8 +23,6 @@ import server.Utilities;
 
 public class HTTPClient {
 	static CloseableHttpClient client;
-//	final private static int UPLOAD_FILE = 1, NEW_FILE = 2, OPEN_FILE = 3, SHARE_FILE = 4, NEW_SUBFOLDER = 5,
-//			CHANGE_DIRECTORY = 6, GO_BACK_DIRECTORY = 7, DELETE = 8, VIEW_SHARED_FILES = 9, LOG_OUT = 10;
 
 	private static void login(String userState) {
 		String name = Utilities.inputString("username", ".*", 1, 20);
@@ -123,9 +121,9 @@ public class HTTPClient {
 		list.add("Open Folder");
 		if (owner) {
 			list.add("Share file/folder with other users");
-			list.add("Remove Share access");
 			list.add("Access shared files by other users");
 			list.add("View files & folders I have shared");
+			list.add("Remove Share access");
 		}
 		list.add("Go back directory");
 		list.add(exitOption);
@@ -142,7 +140,6 @@ public class HTTPClient {
 			handleResponse(response);
 
 			int option = Utilities.selectOption(list);
-//			switch (option) {
 //			case UPLOAD_FILE: {
 			while (write && option == 1) {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
@@ -185,7 +182,26 @@ public class HTTPClient {
 				if (handleResponse(response)) {
 					editor("NEW_EDIT_MODE", "", name, fileName, uri, defaultUri, post, response);
 				}
-//				break;
+			}
+//			case NEW_SUBFOLDER: {
+			if (write && option == 3) {
+				String uri = defaultUri + "/create/folder";
+				HttpPost post = new HttpPost(uri);
+				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 255);
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				nameValuePairs.add(new BasicNameValuePair("File location", name));
+				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				handleResponse(response);
+			}
+//			case DELETE: {
+			if (write && option == 4) {
+				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
+				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				handleResponse(response);
 			}
 //			case OPEN_FILE: {
 			if ((write && option == 5) || (!write && option == 1)) {
@@ -196,7 +212,18 @@ public class HTTPClient {
 				} else {
 					openFile(fileName, name, true);
 				}
-//				break;
+			}
+//			case CHANGE_DIRECTORY: {
+			if ((write && option == 6) || (!write && option == 2)) {
+				String folderName = Utilities.inputString("folder name", ".*", 1, 255);
+				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				if (handleResponse(response)) {
+					flag = accessFolder(name + "/" + folderName, owner, write);
+				} else {
+					System.out.println("No such folder");
+				}
 			}
 //			case SHARE_FILE: {
 			if (owner && option == 7) {
@@ -221,71 +248,9 @@ public class HTTPClient {
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				handleResponse(response);
-//				break;
-			}
-			if (owner && option == 8) {
-				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
-				String uri = "http://localhost:8500/previlege/removesharedfile?" + "location=" + name + "&subfolder="
-						+ fName;
-				HttpPost post = new HttpPost(uri);
-				@SuppressWarnings("resource")
-				Scanner scan = new Scanner(System.in);
-				System.out.println("Enter user names\nEnter \"stop\" to end");
-				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-				String sharedUserName;
-				while (true) {
-					System.out.println("Enter username...");
-					sharedUserName = scan.next();
-					if (sharedUserName.equalsIgnoreCase("stop")) {
-						break;
-					}
-					nameValuePairs.add(new BasicNameValuePair(sharedUserName, "remove"));
-				}
-				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-				response = client.execute(post);
-				handleResponse(response);
-			}
-//			case NEW_SUBFOLDER: {
-			if (write && option == 3) {
-				String uri = defaultUri + "/create/folder";
-				HttpPost post = new HttpPost(uri);
-				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 255);
-				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-				nameValuePairs.add(new BasicNameValuePair("File location", name));
-				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
-				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-				response = client.execute(post);
-				handleResponse(response);
-//				break;
-			}
-//			case CHANGE_DIRECTORY: {
-			if ((write && option == 6) || (!write && option == 2)) {
-				String folderName = Utilities.inputString("folder name", ".*", 1, 255);
-				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
-				HttpPost post = new HttpPost(uri);
-				response = client.execute(post);
-				if (handleResponse(response)) {
-					flag = accessFolder(name + "/" + folderName, owner, write);
-				} else {
-					System.out.println("No such folder");
-				}
-//				break;
-			}
-//			case DELETE: {
-			if (write && option == 4) {
-				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
-				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
-				HttpPost post = new HttpPost(uri);
-				response = client.execute(post);
-				handleResponse(response);
-//				break;
-			}
-//			case GO_BACK_DIRECTORY: {
-			if ((owner && option == 11) || (!owner && write && option == 7) || (!write && option == 3)) {
-				return false;
 			}
 //			case VIEW_SHARED_FILES: {
-			while (owner && option == 9) {
+			while (owner && option == 8) {
 				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
 				String uri = "http://localhost:8500/previlege/shared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
@@ -295,7 +260,7 @@ public class HTTPClient {
 				if (records.contains("No files available")) {
 					break;
 				}
-				int fileId = Utilities.inputInt("File id to proceed", 1, 20);
+				int fileId = Utilities.inputInt("file id to proceed", 1, 20);
 				uri = "http://localhost:8500/previlege/shared/check?" + "name=" + userName + "&id=" + fileId;
 				post = new HttpPost(uri);
 				response = client.execute(post);
@@ -322,16 +287,44 @@ public class HTTPClient {
 						accessFolder(location, false, false);
 					}
 				}
-
 				break;
 			}
 //			case MY_SHARED: {
-			if (owner && option == 10) {
+			if ((owner && option == 9) || (owner && option == 10)) {
 				String userName = name.contains("/") ? name.substring(0, name.indexOf('/')) : name;
 				String uri = "http://localhost:8500/previlege/myshared?" + "name=" + userName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
 				handleResponseString(response);
+				if (option == 10)
+					System.out.println("-----------------------------------------------------------");
+			}
+//			case REMOVE_SHARED: {
+			if (owner && option == 10) {
+				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
+				String uri = "http://localhost:8500/previlege/removesharedfile?" + "location=" + name + "&subfolder="
+						+ fName;
+				HttpPost post = new HttpPost(uri);
+				@SuppressWarnings("resource")
+				Scanner scan = new Scanner(System.in);
+				System.out.println("Enter user names\nEnter \"stop\" to end");
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				String sharedUserName;
+				while (true) {
+					System.out.println("Enter username...");
+					sharedUserName = scan.next();
+					if (sharedUserName.equalsIgnoreCase("stop")) {
+						break;
+					}
+					nameValuePairs.add(new BasicNameValuePair(sharedUserName, "remove"));
+				}
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				response = client.execute(post);
+				handleResponse(response);
+			}
+//			case GO_BACK_DIRECTORY: {
+			if ((owner && option == 11) || (!owner && write && option == 7) || (!write && option == 3)) {
+				return false;
 			}
 //			case LOG_OUT: {
 			if ((owner && option == 12) || (!owner && write && option == 8) || (!write && option == 4)) {
