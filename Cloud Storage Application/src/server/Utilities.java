@@ -3,6 +3,7 @@ package server;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -23,9 +24,6 @@ public class Utilities {
 
 	public static String inputString(String name, String match, int minLength, int maxLength) {
 		String string;
-		if(name.contains("privilage")) {
-			System.out.println("hi");
-		}
 		while (true) {
 			System.out.println("Enter " + name);
 			if (scan.hasNext()) {
@@ -105,27 +103,6 @@ public class Utilities {
 		return user;
 	}
 
-	public static Object readFile(File file) throws Exception {
-		fin = new FileInputStream(file);
-		oin = new ObjectInputStream(fin);
-		Object object = oin.readObject();
-		if (oin != null)
-			oin.close();
-		if (fin != null)
-			fin.close();
-		return object;
-	}
-
-	public static void writeFile(File file, Object object) throws Exception {
-		fout = new FileOutputStream(file);
-		oout = new ObjectOutputStream(fout);
-		oout.writeObject(object);
-		if (fout != null)
-			fout.close();
-		if (oout != null)
-			oout.close();
-	}
-
 	public static String stringBuilder(BufferedReader bin) throws IOException {
 		StringBuilder stringBuilder = new StringBuilder();
 		String s = "";
@@ -133,5 +110,60 @@ public class Utilities {
 			stringBuilder.append(s + "\n");
 		}
 		return stringBuilder.toString();
+	}
+
+	public static Object readFile(File file) {
+		Object object = null;
+		try {
+			fin = new FileInputStream(file);
+			oin = new ObjectInputStream(fin);
+			object = oin.readObject();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (oin != null)
+				try {
+					oin.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			if (fin != null)
+				try {
+					fin.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+		}
+		return object;
+	}
+
+	public static void writeFile(File file, Object object) {
+		try {
+			fout = new FileOutputStream(file);
+			oout = new ObjectOutputStream(fout);
+			oout.writeObject(object);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (fout != null)
+				try {
+					fout.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			if (oout != null)
+				try {
+					oout.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+		}
 	}
 }

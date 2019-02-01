@@ -19,14 +19,12 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 
-import server.Utilities;
-
 public class HTTPClient {
 	static CloseableHttpClient client;
 
 	private static void login(String userState) {
-		String name = Utilities.inputString("username", ".*", 1, 20);
-		String password = Utilities.inputString("password", ".*", 1, 20);
+		String name = ClientUtilities.inputString("username", ".*", 1, 20);
+		String password = ClientUtilities.inputString("password", ".*", 1, 20);
 		int hashPassword = password.hashCode();
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;
@@ -71,37 +69,6 @@ public class HTTPClient {
 		}
 	}
 
-	private static void openFile(String fileName, String location, boolean editable)
-			throws ClientProtocolException, IOException {
-
-		String uri = "http://localhost:8500/access" + "/read?" + "location=" + location + "&filename=" + fileName;
-		HttpPost post = new HttpPost(uri);
-		HttpResponse response = client.execute(post);
-		int status = response.getStatusLine().getStatusCode();
-		String line = "", paragraph = "";
-
-		if (status >= 200 && status < 300) {
-			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-			while ((line = br.readLine()) != null) {
-				paragraph = paragraph + line + "\n";
-			}
-		} else {
-			System.out.println("Unexpected response status: " + status);
-		}
-
-		if (paragraph.contains("<ERROR--->File not found<---ERROR>")) {
-			System.out.println("File not found");
-		} else {
-			if (editable) {
-				editor("DISPLAY_MODE", paragraph, location, fileName, uri, "http://localhost:8500/access", post,
-						response);
-			} else {
-				editor("READ_ONLY_MODE", paragraph, location, fileName, uri, "http://localhost:8500/access", post,
-						response);
-			}
-		}
-	}
-
 	static boolean accessFolder(String name, boolean owner, boolean write) throws ClientProtocolException, IOException {
 		String defaultUri = "http://localhost:8500/access";
 		String exitOption;
@@ -124,6 +91,7 @@ public class HTTPClient {
 			list.add("Access shared files by other users");
 			list.add("View files & folders I have shared");
 			list.add("Remove Share access");
+			list.add("Find");
 		}
 		list.add("Go back directory");
 		list.add(exitOption);
@@ -139,14 +107,14 @@ public class HTTPClient {
 			HttpResponse response = client.execute(initialPost);
 			handleResponse(response);
 
-			int option = Utilities.selectOption(list);
+			int option = ClientUtilities.selectOption(list);
 //			case UPLOAD_FILE: {
 			if (write && option == 1) {
 				HttpPost post = new HttpPost(defaultUri + "/create/file");
-				String fileUrl = Utilities.inputString("file name with full path", ".*[.]txt", 1, 1000);
+				String fileUrl = ClientUtilities.inputString("file name with full path", ".*[.]txt", 1, 1000);
 //				String fileUrl = "/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/test folder/test_file 1.txt";
 				File file = new File(fileUrl);
-				String fileName = Utilities.inputString("name for your file", ".*", 1, 255) + ".txt";
+				String fileName = ClientUtilities.inputString("name for your file", ".*", 1, 255) + ".txt";
 				StringBuilder stringBuilder = new StringBuilder();
 				if (file.exists()) {
 					BufferedReader bin = new BufferedReader(new FileReader(file));
@@ -171,7 +139,7 @@ public class HTTPClient {
 			else if (write && option == 2) {
 				String uri = defaultUri + "/create/new/file";
 				HttpPost post = new HttpPost(uri);
-				String fileName = Utilities.inputString("name for your file", ".*", 1, 255);
+				String fileName = ClientUtilities.inputString("name for your file", ".*", 1, 255);
 				fileName = fileName + ".txt";
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("File location", name));
@@ -186,7 +154,7 @@ public class HTTPClient {
 			else if (write && option == 3) {
 				String uri = defaultUri + "/create/folder";
 				HttpPost post = new HttpPost(uri);
-				String folderName = Utilities.inputString("sub-folder name", ".*", 1, 255);
+				String folderName = ClientUtilities.inputString("sub-folder name", ".*", 1, 255);
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				nameValuePairs.add(new BasicNameValuePair("File location", name));
 				nameValuePairs.add(new BasicNameValuePair("File name", folderName));
@@ -196,7 +164,7 @@ public class HTTPClient {
 			}
 //			case DELETE: {
 			else if (write && option == 4) {
-				String fName = Utilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
+				String fName = ClientUtilities.inputString("file/folder name (inc. extension)", ".*", 1, 260);
 				String uri = defaultUri + "/check/delete?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
@@ -204,7 +172,7 @@ public class HTTPClient {
 			}
 //			case OPEN_FILE: {
 			else if ((write && option == 5) || (!write && option == 1)) {
-				String fileName = Utilities.inputString("file name", ".*", 1, 255);
+				String fileName = ClientUtilities.inputString("file name", ".*", 1, 255);
 				fileName = fileName + ".txt";
 				if (!write) {
 					openFile(fileName, name, false);
@@ -214,7 +182,7 @@ public class HTTPClient {
 			}
 //			case CHANGE_DIRECTORY: {
 			else if ((write && option == 6) || (!write && option == 2)) {
-				String folderName = Utilities.inputString("folder name", ".*", 1, 255);
+				String folderName = ClientUtilities.inputString("folder name", ".*", 1, 255);
 				String uri = defaultUri + "/check?" + "location=" + name + "&subfolder=" + folderName;
 				HttpPost post = new HttpPost(uri);
 				response = client.execute(post);
@@ -226,7 +194,7 @@ public class HTTPClient {
 			}
 //			case SHARE_FILE: {
 			else if (owner && option == 7) {
-				String fName = Utilities.inputString("file/folder name inc. extension", ".*", 1, 260);
+				String fName = ClientUtilities.inputString("file/folder name inc. extension", ".*", 1, 260);
 				String uri = "http://localhost:8500/previlege/sharefile?" + "location=" + name + "&subfolder=" + fName;
 				HttpPost post = new HttpPost(uri);
 				@SuppressWarnings("resource")
@@ -241,7 +209,8 @@ public class HTTPClient {
 					if (sharedUserName.equalsIgnoreCase("stop")) {
 						break;
 					}
-					privilege = Utilities.inputString("privilage (\"read\" or \"write\")...", "(read|write)", 4, 5);
+					privilege = ClientUtilities.inputString("privilage (\"read\" or \"write\")...", "(read|write)", 4,
+							5);
 					nameValuePairs.add(new BasicNameValuePair(sharedUserName, privilege));
 				}
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -259,7 +228,7 @@ public class HTTPClient {
 				if (records.contains("No files available")) {
 					continue;
 				}
-				int fileId = Utilities.inputInt("file id to proceed", 1, 20);
+				int fileId = ClientUtilities.inputInt("file id to proceed", 1, 20);
 				uri = "http://localhost:8500/previlege/shared/check?" + "name=" + userName + "&id=" + fileId;
 				post = new HttpPost(uri);
 				response = client.execute(post);
@@ -299,7 +268,7 @@ public class HTTPClient {
 			}
 //			case REMOVE_SHARED: {
 			if (owner && option == 10) {
-				String fileId = Utilities.inputString("file id", ".*", 1, 260);
+				String fileId = ClientUtilities.inputString("file id", ".*", 1, 260);
 				String uri = "http://localhost:8500/previlege/removesharedfile?" + "&id=" + fileId;
 				HttpPost post = new HttpPost(uri);
 				@SuppressWarnings("resource")
@@ -319,12 +288,20 @@ public class HTTPClient {
 				response = client.execute(post);
 				handleResponse(response);
 			}
+//			case FIND: {
+			else if (owner && option == 11) {
+				String word = ClientUtilities.inputString("the word you want to search", ".*", 1, 20);
+				String uri = defaultUri + "/file/find?" + "word=" + word;
+				HttpPost post = new HttpPost(uri);
+				response = client.execute(post);
+				handleResponse(response);
+			}
 //			case GO_BACK_DIRECTORY: {
-			else if ((owner && option == 11) || (!owner && write && option == 7) || (!write && option == 3)) {
+			else if ((owner && option == 12) || (!owner && write && option == 7) || (!write && option == 3)) {
 				return false;
 			}
 //			case LOG_OUT: {
-			else if ((owner && option == 12) || (!owner && write && option == 8) || (!write && option == 4)) {
+			else if ((owner && option == 13) || (!owner && write && option == 8) || (!write && option == 4)) {
 				return true;
 			}
 		}
@@ -370,6 +347,37 @@ public class HTTPClient {
 		return false;
 	}
 
+	private static void openFile(String fileName, String location, boolean editable)
+			throws ClientProtocolException, IOException {
+
+		String uri = "http://localhost:8500/access" + "/read?" + "location=" + location + "&filename=" + fileName;
+		HttpPost post = new HttpPost(uri);
+		HttpResponse response = client.execute(post);
+		int status = response.getStatusLine().getStatusCode();
+		String line = "", paragraph = "";
+
+		if (status >= 200 && status < 300) {
+			BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+			while ((line = br.readLine()) != null) {
+				paragraph = paragraph + line + "\n";
+			}
+		} else {
+			System.out.println("Unexpected response status: " + status);
+		}
+
+		if (paragraph.contains("<ERROR--->File not found<---ERROR>")) {
+			System.out.println("File not found");
+		} else {
+			if (editable) {
+				editor("DISPLAY_MODE", paragraph, location, fileName, uri, "http://localhost:8500/access", post,
+						response);
+			} else {
+				editor("READ_ONLY_MODE", paragraph, location, fileName, uri, "http://localhost:8500/access", post,
+						response);
+			}
+		}
+	}
+
 	private static void editor(String mode, String paragraph, String name, String fileName, String uri,
 			String defaultUri, HttpPost post, HttpResponse response) throws ClientProtocolException, IOException {
 		TextEditor textEditor = new TextEditor(mode, paragraph, fileName);
@@ -402,7 +410,7 @@ public class HTTPClient {
 		list.add("Login");
 		list.add("Sign Up");
 		while (true) {
-			int option = Utilities.selectOption(list);
+			int option = ClientUtilities.selectOption(list);
 			switch (option) {
 			case 1: {
 				login("existing");

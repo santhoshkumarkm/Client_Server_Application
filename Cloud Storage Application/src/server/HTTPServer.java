@@ -67,6 +67,7 @@ class LoginHandler implements HttpHandler {
 }
 
 class AccessHandler implements HttpHandler {
+	HashMapUtil hashMapUtil = new HashMapUtil();
 
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
@@ -90,6 +91,11 @@ class AccessHandler implements HttpHandler {
 			} else {
 				msg = "<ERROR--->File not found<---ERROR>";
 			}
+		} else if (uri.getPath().contains("find")) {
+			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
+			String word = readFileAttributes[0];
+			msg = hashMapUtil.findWord(word);
+			
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(
@@ -133,32 +139,33 @@ class AccessHandler implements HttpHandler {
 
 	private boolean create(String request, String uriPath) throws IOException {
 		request = request.substring(0, request.length() - 1);
-		String fileLocation = "", fileName = "", content = "";
+		String fileLocation = "", fileName = "", content = "", filePath;
 		String fileAttributes[] = Utilities.queryToMap(request);
 		fileLocation = fileAttributes[0];
 		fileName = fileAttributes[1];
-		File file = new File(HTTPServer.defaultLocation + "/" + fileLocation + "/" + fileName);
+		filePath = fileLocation + "/" + fileName;
+		File file = new File(HTTPServer.defaultLocation + "/" + filePath);
 		if (!file.exists()) {
 			if (uriPath.contains("folder")) {
 				file.mkdir();
 				return true;
-			} else {
+			} else if (uriPath.contains("file")) {
 				file.createNewFile();
 				FileWriter fw = new FileWriter(file);
 				fw.write(content);
 				fw.close();
 				return true;
 			}
-		} else {
-			if (uriPath.contains("edit")) {
-				file.delete();
-				content = fileAttributes[2];
-				file.createNewFile();
-				FileWriter fw = new FileWriter(file);
-				fw.write(content);
-				fw.close();
-				return true;
-			}
+		} else if (uriPath.contains("edit")) {
+			file.delete();
+			content = fileAttributes[2];
+			file.createNewFile();
+			FileWriter fw = new FileWriter(file);
+			fw.write(content);
+			hashMapUtil.setFileInfo(filePath, content);
+			hashMapUtil.start();
+			fw.close();
+			return true;
 		}
 		return false;
 	}
