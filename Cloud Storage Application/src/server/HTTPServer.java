@@ -92,10 +92,16 @@ class AccessHandler implements HttpHandler {
 				msg = "<ERROR--->File not found<---ERROR>";
 			}
 		} else if (uri.getPath().contains("find")) {
-			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			String word = readFileAttributes[0];
-			msg = hashMapUtil.findWord(word);
-			
+			InputStream in = ex.getRequestBody();
+			String request = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
+			request = request.substring(0, request.length() - 1);
+			String[] readFileAttributes = Utilities.queryToMap(request);
+			if (readFileAttributes.length == 1) {
+				msg = hashMapUtil.findWord(readFileAttributes[0]);
+			} else {
+				msg = hashMapUtil.findMultiWords(readFileAttributes);
+			}
+
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(

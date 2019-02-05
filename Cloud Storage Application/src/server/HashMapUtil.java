@@ -1,14 +1,18 @@
 package server;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class HashMapUtil extends Thread {
 	HashMapObject hashMapObject;
-	HashMap<Integer, String> files;
-	HashMap<String, LinkedHashMap<Integer, Integer>> hashMap;
+	LinkedHashMap<Integer, String> files;
+	LinkedHashMap<String, LinkedList<LinkedList<Integer>>> hashMap;
 	File hashMapFile;
 	String filePath, fileContent;
 
@@ -24,8 +28,8 @@ public class HashMapUtil extends Thread {
 			}
 		} else {
 			hashMapObject = new HashMapObject();
-			hashMap = new HashMap<String, LinkedHashMap<Integer, Integer>>();
-			files = new HashMap<Integer, String>();
+			hashMap = new LinkedHashMap<String, LinkedList<LinkedList<Integer>>>();
+			files = new LinkedHashMap<Integer, String>();
 		}
 	}
 
@@ -34,7 +38,7 @@ public class HashMapUtil extends Thread {
 		this.fileContent = fileContent;
 	}
 
-	public void run() {
+	synchronized public void run() {
 		int fileId = 0;
 		if (hashMapObject.getLastFileId() != 0 && files.containsValue(filePath)) {
 			for (Map.Entry<Integer, String> entry : files.entrySet()) {
@@ -50,25 +54,51 @@ public class HashMapUtil extends Thread {
 			hashMapObject.increaseLastFileId();
 		}
 		String[] words = fileContent.split(" ");
-		for (String word : words) {
-			addHashMapEntry(word, fileId, true);
+		for (int i = 0; i < words.length; i++) {
+			addHashMapEntry(i, words[i], fileId, true);
 		}
 	}
 
-	private void addHashMapEntry(String word, int fileId, boolean add) {
-		LinkedHashMap<Integer, Integer> valueMap;
-		int count = 0;
+	synchronized private void addHashMapEntry(int position, String word, int fileId, boolean add) {
+		LinkedList<LinkedList<Integer>> valueList = new LinkedList<LinkedList<Integer>>();
+		int prevId = 0;
 		if (add) {
 			if (hashMap.containsKey(word)) {
-				valueMap = (LinkedHashMap<Integer, Integer>) hashMap.get(word);
-				count = valueMap.get(fileId);
+				for (int i = 0; i < hashMap.get(word).size(); i++) {
+					LinkedList<Integer> tempList = hashMap.get(word).get(i);
+					prevId = tempList.get(0);
+					if (prevId == fileId) {
+						tempList.set(1, (tempList.get(1) + 1));
+						int positionIndex = isPresent(tempList, position);
+						if (positionIndex != 0) {
+							tempList.add(positionIndex, position);
+						}
+						valueList.add(i, tempList);
+					} else {
+						valueList.add(new LinkedList<Integer>(Arrays.asList(fileId, 1, position)));
+					}
+				}
 			} else {
-				valueMap = new LinkedHashMap<Integer, Integer>();
+				valueList.add(new LinkedList<Integer>(Arrays.asList(fileId, 1, position)));
 			}
-			valueMap.put(fileId, count + 1);
-			hashMap.put(word, valueMap);
+			hashMap.put(word, valueList);
+			saveHashMap();
 		}
-		saveHashMap();
+	}
+
+	private int isPresent(LinkedList<Integer> tempList, int position) {
+		boolean loopEntry = true;
+		int returnVal = 0;
+		for (int i = 2; i < tempList.size(); i++) {
+			if (position == tempList.get(i)) {
+				return 0;
+			}
+			if (loopEntry && position < tempList.get(i)) {
+				returnVal = i;
+				loopEntry = false;
+			}
+		}
+		return returnVal;
 	}
 
 	public String getMap() {
@@ -76,17 +106,87 @@ public class HashMapUtil extends Thread {
 	}
 
 	public String findWord(String word) {
-		LinkedHashMap<Integer, Integer> valueMap;
+		List<Integer> fileList = new ArrayList<Integer>();
+		List<Integer> timesList = new ArrayList<Integer>();
 		String values = "Present in:";
-		valueMap = (LinkedHashMap<Integer, Integer>) hashMap.get(word);
-		if (valueMap != null) {
-			for (Map.Entry<Integer, Integer> entry : valueMap.entrySet()) {
-				values += "\n" + (String) files.get(entry.getKey()) + "\tNo. of times = " + entry.getValue();
+		int count = 0, fileId = 0;
+		for (Entry<String, LinkedList<LinkedList<Integer>>> entry : hashMap.entrySet()) {
+			if (((String) entry.getKey()).matches(".*" + word + ".*")) {
+				for (int i = 0; i <= entry.getKey().length() - word.length(); i++) {
+					if (entry.getKey().substring(i, i + word.length()).equalsIgnoreCase(word)) {
+						count++;
+					}
+				}
+
+				for (int i = 0; i < entry.getValue().size(); i++) {
+					LinkedList<Integer> temp = new LinkedList<Integer>();
+					temp.addAll(entry.getValue().get(i));
+					fileId = temp.get(0);
+					if (fileList.contains(fileId)) {
+						int index = fileList.indexOf(fileId);
+						timesList.set(index, timesList.get(index) + 1);
+					} else {
+						fileList.add(fileId);
+						timesList.add(count);
+					}
+				}
 			}
-		} else {
-			values = "Not found";
 		}
-		return values;
+
+		for (int i = 0; i < fileList.size(); i++) {
+			values += "\n" + (String) files.get(fileList.get(i)) + "\tNo. of times = " + timesList.get(i);
+		}
+		return values.length() > "Present in:".length() ? values : "Not found";
+
+	}
+
+	public String findMultiWords(String[] words) {
+		String values = "Present in:";
+		int fileId = 0;
+		LinkedList<LinkedList<Integer>> temp = null, prev = new LinkedList<LinkedList<Integer>>();
+		int h = 0;
+//		outer: for (; h < words.length; h++) {
+		outer: for (Entry<String, LinkedList<LinkedList<Integer>>> entry : hashMap.entrySet()) {
+			if (h == words.length) {
+				break;
+			}
+
+			if (((String) entry.getKey()).equalsIgnoreCase(words[h])) {
+				h++;
+				temp = entry.getValue();
+
+				if (prev.size() == 0) {
+					prev.addAll(temp);
+					continue outer;
+
+				}
+				for (int i = 0; i < temp.size(); ++i) {
+					for (int j = 0; j < prev.size(); j++) {
+						if (temp.get(i).get(0) == prev.get(j).get(0)) {
+							for (int k = 2; k < temp.get(i).size(); k++) {
+								for (int l = 2; l < prev.get(j).size(); ++l) {
+									if (temp.get(i).get(k) == prev.get(j).get(l) + 1
+											|| temp.get(i).get(k) == prev.get(j).get(l) - 1) {
+										prev.clear();
+										prev.addAll(temp);
+										fileId = temp.get(i).get(0);
+										continue outer;
+									}
+								}
+							}
+						} else {
+							break outer;
+						}
+					}
+				}
+			}
+
+		}
+
+		if (h == words.length) {
+			return values + "\n" + (String) files.get(fileId);
+		}
+		return "Not found";
 	}
 
 	private void saveHashMap() {

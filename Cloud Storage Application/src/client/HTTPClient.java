@@ -290,9 +290,14 @@ public class HTTPClient {
 			}
 //			case FIND: {
 			else if (owner && option == 11) {
-				String word = ClientUtilities.inputString("the word you want to search", ".*", 1, 20);
-				String uri = defaultUri + "/file/find?" + "word=" + word;
+				String words = ClientUtilities.inputString("the word you want to search", ".*", 1, 20);
+				String uri = defaultUri + "/file/find?";
+				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+				for (String word : words.split(" ")) {
+					nameValuePairs.add(new BasicNameValuePair("word", word));
+				}
 				HttpPost post = new HttpPost(uri);
+				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
 				handleResponse(response);
 			}

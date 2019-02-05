@@ -1,20 +1,20 @@
 package server;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 
 public class HashMapObject implements Serializable {
 	public static final long serialVersionUID = 10001L;
-	HashMap<String, LinkedHashMap<Integer, Integer>> hashMap;
-	HashMap<Integer, String> files;
+	LinkedHashMap<String, LinkedList<LinkedList<Integer>>> hashMap;
+	LinkedHashMap<Integer, String> files;
 	int lastFileId;
 
-	HashMap<String, LinkedHashMap<Integer, Integer>> getHashMap() {
+	LinkedHashMap<String, LinkedList<LinkedList<Integer>>> getHashMap() {
 		return hashMap;
 	}
 
-	HashMap<Integer, String> getFiles() {
+	LinkedHashMap<Integer, String> getFiles() {
 		return files;
 	}
 
@@ -26,11 +26,11 @@ public class HashMapObject implements Serializable {
 		++lastFileId;
 	}
 
-	public void setHashMap(HashMap<String, LinkedHashMap<Integer, Integer>> hashMap) {
+	public void setHashMap(LinkedHashMap<String, LinkedList<LinkedList<Integer>>> hashMap) {
 		this.hashMap = hashMap;
 	}
 
-	public void setfilesMap(HashMap<Integer, String> files) {
+	public void setfilesMap(LinkedHashMap<Integer, String> files) {
 		this.files = files;
 	}
 }
