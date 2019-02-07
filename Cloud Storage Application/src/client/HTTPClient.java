@@ -23,8 +23,8 @@ public class HTTPClient {
 	static CloseableHttpClient client;
 
 	private static void login(String userState) {
-		String name = ClientUtilities.inputString("username", ".*", 1, 20);
-		String password = ClientUtilities.inputString("password", ".*", 1, 20);
+		String name = ClientUtilities.inputString("username", "\\S*", 1, 20);
+		String password = ClientUtilities.inputString("password", "\\S*", 1, 20);
 		int hashPassword = password.hashCode();
 		String defaultUri = "http://localhost:8500/login/?" + "name=" + name + "&password=" + hashPassword + "&user="
 				+ userState;

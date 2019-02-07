@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -68,6 +69,7 @@ class LoginHandler implements HttpHandler {
 
 class AccessHandler implements HttpHandler {
 	HashMapUtil hashMapUtil = new HashMapUtil();
+	File hashMapFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/HashMap.txt");
 
 	@Override
 	public void handle(HttpExchange ex) throws IOException {
@@ -96,12 +98,17 @@ class AccessHandler implements HttpHandler {
 			String request = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
 			request = request.substring(0, request.length() - 1);
 			String[] readFileAttributes = Utilities.queryToMap(request);
-			if (readFileAttributes.length == 1) {
-				msg = hashMapUtil.findWord(readFileAttributes[0]);
-			} else {
-				msg = hashMapUtil.findMultiWords(readFileAttributes);
-			}
 
+			LinkedHashMap<Integer, ArrayList<Integer>> fileAndPosMap = hashMapUtil.findWord(readFileAttributes);
+			if (fileAndPosMap != null) {
+				msg = "Present in :";
+				HashMapObject hashMapObject = (HashMapObject) Utilities.readFile(hashMapFile);
+				for (Map.Entry<Integer, ArrayList<Integer>> entry : fileAndPosMap.entrySet()) {
+					msg += "\n" + "File name: " + hashMapObject.getFiles().get(entry.getKey()) + "\tCount: " + entry.getValue().size();
+				}
+			} else {
+				msg = "Not found";
+			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			File file = new File(
@@ -169,7 +176,7 @@ class AccessHandler implements HttpHandler {
 			FileWriter fw = new FileWriter(file);
 			fw.write(content);
 			hashMapUtil.setFileInfo(filePath, content);
-			hashMapUtil.start();
+			hashMapUtil.addWords();
 			fw.close();
 			return true;
 		}

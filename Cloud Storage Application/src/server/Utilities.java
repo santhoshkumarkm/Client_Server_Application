@@ -85,15 +85,11 @@ public class Utilities {
 	}
 
 	public static String[] queryToMap(String query) throws UnsupportedEncodingException {
-		query = query.substring(1);
+		
 		Map<String, String> result = new LinkedHashMap<String, String>();
 		for (String param : query.split("&")) {
 			String pair[] = param.split("=");
-			if (pair.length > 1) {
 				result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
-			} else {
-				result.put(URLDecoder.decode(pair[0], "UTF-8"), "");
-			}
 		}
 		String[] user = new String[result.size()];
 		int i = 0;
