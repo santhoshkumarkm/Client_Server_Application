@@ -42,7 +42,6 @@ class LoginHandler implements HttpHandler {
 		String name = userAttributes[0], password = userAttributes[1], userType = userAttributes[2],
 				msg = "Not success";
 		if (userType.equals("new")) {
-			ClientInfoDao dao = new ClientInfoDao();
 			System.out.println("A new client is trying to connect");
 			File file = new File(HTTPServer.defaultLocation + name);
 			if (!file.exists()) {
@@ -54,7 +53,6 @@ class LoginHandler implements HttpHandler {
 				msg = "Username already present";
 			}
 		} else if (userType.equals("existing")) {
-			ClientInfoDao dao = new ClientInfoDao();
 			System.out.println("An existing client is trying to connect");
 			msg = dao.checkClient(name, password);
 		} else {
@@ -68,6 +66,7 @@ class LoginHandler implements HttpHandler {
 }
 
 class AccessHandler implements HttpHandler {
+	ClientInfoDao dao = new ClientInfoDao();
 	HashMapUtil hashMapUtil = new HashMapUtil();
 	File hashMapFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/HashMap.txt");
 
@@ -104,19 +103,21 @@ class AccessHandler implements HttpHandler {
 				msg = "Present in :";
 				HashMapObject hashMapObject = (HashMapObject) Utilities.readFile(hashMapFile);
 				for (Map.Entry<Integer, ArrayList<Integer>> entry : fileAndPosMap.entrySet()) {
-					msg += "\n" + "File name: " + hashMapObject.getFiles().get(entry.getKey()) + "\tCount: " + entry.getValue().size();
+					msg += "\n" + "File name: " + hashMapObject.getFiles().get(entry.getKey()) + "\tCount: "
+							+ entry.getValue().size();
 				}
 			} else {
 				msg = "Not found";
 			}
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			File file = new File(
-					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
+			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
+			File file = new File(HTTPServer.defaultLocation + "/" + location);
 			if (file.exists()) {
 				msg = "Folder present";
 				if (uri.getPath().contains("delete")) {
 					file.delete();
+					dao.deleteSharedFile(location);
 					msg = "Delete successful";
 				}
 			} else {
@@ -191,7 +192,6 @@ class PrevilegeHandler implements HttpHandler {
 		URI uri = ex.getRequestURI();
 		String uriPath = uri.getPath();
 		String msg = "";
-		Map<String, String> result;
 		if (uriPath.contains("sharefile")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
@@ -200,10 +200,10 @@ class PrevilegeHandler implements HttpHandler {
 				InputStream in = ex.getRequestBody();
 				String userDetail = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
 
-				result = new LinkedHashMap<String, String>();
+				Map<String, String> result = new LinkedHashMap<String, String>();
 				for (String param : userDetail.split("&")) {
 					String pair[] = param.split("=");
-					result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
+					result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1].trim(), "UTF-8"));
 				}
 				int primaryKeyValue = 0;
 				primaryKeyValue = (int) dao.insertSharedFile(location);
@@ -219,13 +219,9 @@ class PrevilegeHandler implements HttpHandler {
 			int fileId = Integer.valueOf(readFileAttributes[0]);
 			InputStream in = ex.getRequestBody();
 			String userDetail = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));
-			result = new LinkedHashMap<String, String>();
-			for (String param : userDetail.split("&")) {
-				String pair[] = param.split("=");
-				result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
-			}
-			for (Map.Entry<String, String> entry : result.entrySet()) {
-				msg += "\n" + entry.getKey() + " : " + dao.removeSharedUsers(fileId, entry.getKey());
+			String arr[] = Utilities.queryToMap(userDetail);
+			for (String user : arr) {
+				msg += "\n" + user + " : " + dao.removeSharedUsers(fileId, user);
 			}
 		} else if (uriPath.contains("myshared")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());

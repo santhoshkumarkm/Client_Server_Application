@@ -282,7 +282,7 @@ public class HTTPClient {
 					if (sharedUserName.equalsIgnoreCase("stop")) {
 						break;
 					}
-					nameValuePairs.add(new BasicNameValuePair(sharedUserName, "remove"));
+					nameValuePairs.add(new BasicNameValuePair("remove", sharedUserName));
 				}
 				post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 				response = client.execute(post);
@@ -290,7 +290,7 @@ public class HTTPClient {
 			}
 //			case FIND: {
 			else if (owner && option == 11) {
-				String words = ClientUtilities.inputString("the word you want to search", ".*", 1, 20);
+				String words = ClientUtilities.inputString("the search input", ".*", 1, 20);
 				String uri = defaultUri + "/file/find?";
 				List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 				for (String word : words.split(" ")) {

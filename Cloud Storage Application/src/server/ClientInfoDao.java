@@ -122,6 +122,24 @@ public class ClientInfoDao {
 		return primaryKeyValue;
 	}
 
+	public long deleteSharedFile(String location) {
+		Statement stmt = null;
+		long primaryKeyValue = 0;
+		try {
+			stmt = con.createStatement();
+			stmt.executeQuery("delete from shared_files_info where filelocation = '" + location + "'");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null)
+					stmt.close();
+			} catch (Exception e) {
+			}
+		}
+		return primaryKeyValue;
+	}
+
 	public String insertSharedUsers(int fileId, String name, String privilege) {
 		PreparedStatement stmt = null;
 		try {

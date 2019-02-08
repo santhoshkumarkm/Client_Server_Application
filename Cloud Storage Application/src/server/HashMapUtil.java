@@ -92,6 +92,9 @@ public class HashMapUtil {
 	private boolean findMultiWordsImpl(boolean flag, String[] words, int index, ArrayList<Integer> tempPositions,
 			ArrayList<Integer> tempFiles) {
 		WordUtil wordUtil = hashMap.get(words[index]);
+		if (wordUtil == null) {
+			return false;
+		}
 		if (index == 0) {
 			for (Map.Entry<Integer, LinkedList<Integer>> entry : wordUtil.getInfoMap().entrySet()) {
 				ArrayList<Integer> tempList = new ArrayList<Integer>();
@@ -109,8 +112,7 @@ public class HashMapUtil {
 					ArrayList<Integer> tempPosList = entry.getValue();
 					for (int i = 0; i < tempPosList.size(); i++) {
 						int val = tempPosList.get(i);
-						if (wordUtil.getInfoMap().get(entry.getKey()) != null
-								&& wordUtil.getInfoMap().get(entry.getKey()).contains(val + 1)) {
+						if (wordUtil.getInfoMap().get(entry.getKey()).contains(val + 1)) {
 							tempPosListConfirm.add(val + 1);
 						}
 					}

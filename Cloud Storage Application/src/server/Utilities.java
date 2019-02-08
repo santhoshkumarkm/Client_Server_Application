@@ -10,9 +10,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 
 public class Utilities {
@@ -85,18 +84,15 @@ public class Utilities {
 	}
 
 	public static String[] queryToMap(String query) throws UnsupportedEncodingException {
-		
-		Map<String, String> result = new LinkedHashMap<String, String>();
+		if (query.charAt(0) == '&') {
+			query = query.substring(1);
+		}
+		List<String> result = new LinkedList<String>();
 		for (String param : query.split("&")) {
 			String pair[] = param.split("=");
-				result.put(URLDecoder.decode(pair[0], "UTF-8"), URLDecoder.decode(pair[1], "UTF-8"));
+			result.add(URLDecoder.decode(pair[1].trim(), "UTF-8"));
 		}
-		String[] user = new String[result.size()];
-		int i = 0;
-		for (Map.Entry<String, String> entry : result.entrySet()) {
-			user[i++] = entry.getValue();
-		}
-		return user;
+		return result.toArray(new String[result.size()]);
 	}
 
 	public static String stringBuilder(BufferedReader bin) throws IOException {
