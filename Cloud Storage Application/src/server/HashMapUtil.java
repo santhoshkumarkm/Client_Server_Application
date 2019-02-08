@@ -29,13 +29,13 @@ public class HashMapUtil {
 			files = new LinkedHashMap<Integer, String>();
 		}
 	}
+//
+//	public void setFileInfo(String filePath, String fileContent) {
+//		this.filePath = filePath;
+//		this.fileContent = fileContent;
+//	}
 
-	public void setFileInfo(String filePath, String fileContent) {
-		this.filePath = filePath;
-		this.fileContent = fileContent;
-	}
-
-	public void addWords() {
+	public void addWords(String filePath, String fileContent) {
 		int fileId = 0;
 		if (hashMapObject.getLastFileId() != 0 && files.containsValue(filePath)) {
 			for (Map.Entry<Integer, String> entry : files.entrySet()) {

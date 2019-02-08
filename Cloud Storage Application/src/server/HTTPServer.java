@@ -176,8 +176,7 @@ class AccessHandler implements HttpHandler {
 			file.createNewFile();
 			FileWriter fw = new FileWriter(file);
 			fw.write(content);
-			hashMapUtil.setFileInfo(filePath, content);
-			hashMapUtil.addWords();
+			hashMapUtil.addWords(filePath, content);
 			fw.close();
 			return true;
 		}
