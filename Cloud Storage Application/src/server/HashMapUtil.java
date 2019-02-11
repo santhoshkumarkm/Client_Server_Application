@@ -29,11 +29,6 @@ public class HashMapUtil {
 			files = new LinkedHashMap<Integer, String>();
 		}
 	}
-//
-//	public void setFileInfo(String filePath, String fileContent) {
-//		this.filePath = filePath;
-//		this.fileContent = fileContent;
-//	}
 
 	public void addWords(String filePath, String fileContent) {
 		int fileId = 0;
@@ -50,9 +45,9 @@ public class HashMapUtil {
 			files.put(fileId, filePath);
 			hashMapObject.increaseLastFileId();
 		}
-		String[] words = fileContent.split(" ");
+		String[] words = fileContent.split("\\W+");
 		for (int i = 0; i < words.length; i++) {
-			addHashMapEntry(i, words[i], fileId);
+			addHashMapEntry(i, words[i].replace(".", "").trim(), fileId);
 		}
 	}
 
@@ -84,7 +79,7 @@ public class HashMapUtil {
 
 	public LinkedHashMap<Integer, ArrayList<Integer>> findWord(String[] words) {
 		if (findMultiWordsImpl(false, words, 0, new ArrayList<Integer>(), new ArrayList<Integer>())) {
-			return fileAndPosition;
+			return (fileAndPosition);
 		}
 		return null;
 	}

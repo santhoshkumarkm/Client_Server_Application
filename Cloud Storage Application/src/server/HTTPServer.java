@@ -14,6 +14,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Timer;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -30,6 +31,9 @@ public class HTTPServer {
 		server.createContext("/previlege", new PrevilegeHandler());
 		server.setExecutor(null);
 		server.start();
+		Timer timer = new Timer();
+		AddWordsTask addWordsTask = new AddWordsTask();
+		timer.scheduleAtFixedRate(addWordsTask, 10000, 10000);
 	}
 }
 
@@ -67,7 +71,6 @@ class LoginHandler implements HttpHandler {
 
 class AccessHandler implements HttpHandler {
 	ClientInfoDao dao = new ClientInfoDao();
-	HashMapUtil hashMapUtil = new HashMapUtil();
 	File hashMapFile = new File("/Users/santhosh-pt2425/Documents/Cloud_Storage_Application/Clients/HashMap.txt");
 
 	@Override
@@ -85,8 +88,7 @@ class AccessHandler implements HttpHandler {
 			}
 		} else if (uri.getPath().contains("read")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
-			File file = new File(
-					HTTPServer.defaultLocation + "/" + readFileAttributes[0] + "/" + readFileAttributes[1]);
+			File file = new File(HTTPServer.defaultLocation + readFileAttributes[0] + "/" + readFileAttributes[1]);
 			if (file.exists()) {
 				msg = Utilities.stringBuilder(new BufferedReader(new FileReader(file)));
 			} else {
@@ -98,7 +100,7 @@ class AccessHandler implements HttpHandler {
 			request = request.substring(0, request.length() - 1);
 			String[] readFileAttributes = Utilities.queryToMap(request);
 
-			LinkedHashMap<Integer, ArrayList<Integer>> fileAndPosMap = hashMapUtil.findWord(readFileAttributes);
+			LinkedHashMap<Integer, ArrayList<Integer>> fileAndPosMap = new HashMapUtil().findWord(readFileAttributes);
 			if (fileAndPosMap != null) {
 				msg = "Present in :";
 				HashMapObject hashMapObject = (HashMapObject) Utilities.readFile(hashMapFile);
@@ -112,7 +114,7 @@ class AccessHandler implements HttpHandler {
 		} else if (uri.getPath().contains("check")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
-			File file = new File(HTTPServer.defaultLocation + "/" + location);
+			File file = new File(HTTPServer.defaultLocation + location);
 			if (file.exists()) {
 				msg = "Folder present";
 				if (uri.getPath().contains("delete")) {
@@ -125,7 +127,7 @@ class AccessHandler implements HttpHandler {
 			}
 		} else {
 			String[] userRootAttributes = Utilities.queryToMap(uri.getQuery());
-			File file = new File(HTTPServer.defaultLocation + "/" + userRootAttributes[0]);
+			File file = new File(HTTPServer.defaultLocation + userRootAttributes[0]);
 			if (file.exists()) {
 				for (File f : file.listFiles()) {
 					String temp = "";
@@ -153,12 +155,11 @@ class AccessHandler implements HttpHandler {
 
 	private boolean create(String request, String uriPath) throws IOException {
 		request = request.substring(0, request.length() - 1);
-		String fileLocation = "", fileName = "", content = "", filePath;
+		String content = "", filePath = null, fullPath = null;
 		String fileAttributes[] = Utilities.queryToMap(request);
-		fileLocation = fileAttributes[0];
-		fileName = fileAttributes[1];
-		filePath = fileLocation + "/" + fileName;
-		File file = new File(HTTPServer.defaultLocation + "/" + filePath);
+		filePath = fileAttributes[0] + "/" + fileAttributes[1];
+		fullPath = HTTPServer.defaultLocation + filePath;
+		File file = new File(fullPath);
 		if (!file.exists()) {
 			if (uriPath.contains("folder")) {
 				file.mkdir();
@@ -176,7 +177,7 @@ class AccessHandler implements HttpHandler {
 			file.createNewFile();
 			FileWriter fw = new FileWriter(file);
 			fw.write(content);
-			hashMapUtil.addWords(filePath, content);
+			AddWordsTask.getFileList().addFileName(filePath);
 			fw.close();
 			return true;
 		}
@@ -194,7 +195,7 @@ class PrevilegeHandler implements HttpHandler {
 		if (uriPath.contains("sharefile")) {
 			String[] readFileAttributes = Utilities.queryToMap(uri.getQuery());
 			String location = readFileAttributes[0] + "/" + readFileAttributes[1];
-			File file = new File(HTTPServer.defaultLocation + "/" + location);
+			File file = new File(HTTPServer.defaultLocation + location);
 			if (file.exists()) {
 				InputStream in = ex.getRequestBody();
 				String userDetail = Utilities.stringBuilder(new BufferedReader(new InputStreamReader(in)));

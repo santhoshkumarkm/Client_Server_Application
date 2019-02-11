@@ -127,7 +127,7 @@ public class ClientInfoDao {
 		long primaryKeyValue = 0;
 		try {
 			stmt = con.createStatement();
-			stmt.executeQuery("delete from shared_files_info where filelocation = '" + location + "'");
+			stmt.executeUpdate("delete from shared_files_info where filelocation = '" + location + "'");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {

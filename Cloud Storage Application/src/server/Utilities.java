@@ -83,23 +83,31 @@ public class Utilities {
 		return selectedValue;
 	}
 
-	public static String[] queryToMap(String query) throws UnsupportedEncodingException {
+	public static String[] queryToMap(String query) {
 		if (query.charAt(0) == '&') {
 			query = query.substring(1);
 		}
 		List<String> result = new LinkedList<String>();
 		for (String param : query.split("&")) {
 			String pair[] = param.split("=");
-			result.add(URLDecoder.decode(pair[1].trim(), "UTF-8"));
+			try {
+				result.add(URLDecoder.decode(pair[1].trim(), "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 		}
 		return result.toArray(new String[result.size()]);
 	}
 
-	public static String stringBuilder(BufferedReader bin) throws IOException {
+	public static String stringBuilder(BufferedReader bin) {
 		StringBuilder stringBuilder = new StringBuilder();
 		String s = "";
-		while ((s = bin.readLine()) != null) {
-			stringBuilder.append(s + "\n");
+		try {
+			while ((s = bin.readLine()) != null) {
+				stringBuilder.append(s + "\n");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return stringBuilder.toString();
 	}
