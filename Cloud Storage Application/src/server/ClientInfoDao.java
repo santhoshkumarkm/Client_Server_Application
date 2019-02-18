@@ -79,7 +79,7 @@ public class ClientInfoDao {
 		long primaryKeyValue = 0;
 		ResultSet generatedKeys = null, rs = null;
 		try {
-			stmt = con.prepareStatement("insert ignore into shared_files_info values(null,?)",
+			stmt = con.prepareStatement("insert ignore into files_info values(null,?)",
 					Statement.RETURN_GENERATED_KEYS);
 			stmt.setString(1, location);
 			stmt.executeUpdate();
@@ -88,7 +88,7 @@ public class ClientInfoDao {
 				primaryKeyValue = generatedKeys.getLong(1);
 			} else {
 				stmt2 = con.createStatement();
-				String qq = "select id from shared_files_info where filelocation='" + location + "'";
+				String qq = "select id from files_info where filelocation='" + location + "'";
 				rs = stmt2.executeQuery(qq);
 				if (rs.next()) {
 					primaryKeyValue = rs.getLong(1);
@@ -127,7 +127,7 @@ public class ClientInfoDao {
 		long primaryKeyValue = 0;
 		try {
 			stmt = con.createStatement();
-			stmt.executeUpdate("delete from shared_files_info where filelocation = '" + location + "'");
+			stmt.executeUpdate("delete from files_info where filelocation = '" + location + "'");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -224,7 +224,7 @@ public class ClientInfoDao {
 		try {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(
-					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join shared_files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where c.name ='"
+					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where c.name ='"
 							+ userName + "'");
 			while (rs.next()) {
 				if (rs.getInt(1) == fileId) {
@@ -262,7 +262,7 @@ public class ClientInfoDao {
 		try {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(
-					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join shared_files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where c.name ='"
+					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where c.name ='"
 							+ userName + "'");
 			while (rs.next()) {
 				location = rs.getString(2);
@@ -299,7 +299,7 @@ public class ClientInfoDao {
 		try {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(
-					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join shared_files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where f.filelocation like '"
+					"select f.id, f.filelocation, c.name, u.privilege from shared_users_info u inner join files_info f on f.id = u.file_id inner join clients_info c on u.user_id = c.id where f.filelocation like '"
 							+ userName + "%'");
 			while (rs.next()) {
 				location = rs.getString(2);
